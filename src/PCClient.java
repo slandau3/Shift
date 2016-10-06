@@ -1,6 +1,7 @@
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
@@ -77,7 +78,7 @@ public class PCClient extends Application {
     private void sendMessage(final String txt) {
         Platform.runLater(() -> {
             try {
-                out.writeObject((String) txt);
+                out.writeObject(txt);
                 out.flush();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -102,7 +103,7 @@ public class PCClient extends Application {
                     message = (String) obj;
                     messageDisplay.appendText(message); // Update the messageDisplay
                 }
-                
+
             } catch (Exception e) {
                 throw new IOException("Server closed?");
             }
@@ -137,7 +138,9 @@ public class PCClient extends Application {
 
         // Set up the conversationsList
         // TODO
-
+        ScrollPane sp = new ScrollPane();
+        conversationsList = new VBox();
+        fillVbox(conversationsList);
         // Open the GUI
 
         primaryStage.setScene(new Scene(bp, 500, 500));
@@ -152,6 +155,40 @@ public class PCClient extends Application {
         new Thread(() -> {
             PCClient("localhost"); // Start the server once the GUI is set up.
         }).start();
+    }
+
+    /**
+     * Fills the left side of the screen with your contacts.
+     * Will eventually request the updated contact info from the server.
+     * Should store said contact info to a file.
+     *
+     *
+     *
+     * @param conversationsList
+     */
+    private void fillVbox(VBox conversationsList) throws FileNotFoundException {
+        BufferedReader freader = new BufferedReader(new FileReader(new File("test.txt")));
+        String line;
+        PrintWriter pr = new PrintWriter(new File("test.txt"));
+        pr.println(new Contact(null, null, null));
+        try {
+            boolean onName = true;
+            boolean onNumber = false;
+            boolean onMessage = false;
+            String name = "";
+            String number = "";
+            ArrayList<String> msgs = new ArrayList<>();
+            int i = 0;
+            while ((line = freader.readLine()) != null) {
+                i++;
+                String[] sLine = line.trim().split(", ");  // Keep an eye on this one
+                if (sLine[0].equals("Name:") || onName) {
+                    name += sLine[i];
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {

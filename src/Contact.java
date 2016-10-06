@@ -1,9 +1,12 @@
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
  * Created by Steven Landau on 10/6/2016.
+ *
+ * This class will be used throughout Shift
  */
-public class Contact {
+public class Contact implements Serializable {
     private String name;
     private String phoneNumber;
     private ArrayList<String> messages;
@@ -25,5 +28,32 @@ public class Contact {
 
     public String getMostRecentMessage() {
         return messages.get(messages.size()-1);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Contact) {
+            Contact o = (Contact) obj;
+            if (this.name.equals(o.name)) {
+                if (this.phoneNumber.equals(o.phoneNumber)) {
+                    if (this.messages == o.messages) {
+                        return true;
+                    }
+                    return false;
+                }
+                return false;
+            }
+            return false;
+        }
+        return false;
+    }
+
+    @Override
+    public String toString() { //TODO: need to rework the toString. Not entirely sure what I'll use it for just yet.
+        return "Contact{" +
+                "name='" + name + '\'' +
+                ", phoneNumber='" + phoneNumber + '\'' +
+                ", messages=" + messages +
+                '}';
     }
 }
