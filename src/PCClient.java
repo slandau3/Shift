@@ -19,10 +19,10 @@ import java.util.ArrayList;
 public class PCClient extends Application {
 
     private Socket server;
-    private BufferedReader in;
-    private PrintWriter out;
-    //private ObjectInputStream in;
-    //private ObjectOutputStream out;
+    //private BufferedReader in;
+    //private PrintWriter out;
+    private ObjectInputStream in;
+    private ObjectOutputStream out;
     private TextField inputBar;
     private TextArea messageDisplay;
     private VBox conversationsList;
@@ -41,20 +41,22 @@ public class PCClient extends Application {
             System.out.println("here");
             server = new Socket(ip, 8012);
             System.out.println("here2");
-            //out = new ObjectOutputStream(server.getOutputStream());
-            out = new PrintWriter(server.getOutputStream(), true);
+            out = new ObjectOutputStream(server.getOutputStream());
+            //out = new PrintWriter(server.getOutputStream(), true);
             out.flush();
             System.out.println("here3");
-            //in = new ObjectInputStream(server.getInputStream());
-            in = new BufferedReader(new InputStreamReader(server.getInputStream()));
+            in = new ObjectInputStream(server.getInputStream());
+            //in = new BufferedReader(new InputStreamReader(server.getInputStream()));
             System.out.println("here");
             //Application.launch();
             System.out.println("here");
             //Thread.sleep(2000);
-            out.println("Desktop checking in"); // Let the server know we are the desktop
+            //out.println("Desktop checking in"); // Let the server know we are the desktop
+            //out.writeUTF("Desktop checkign in");
+            out.writeObject("Desktop checking in");
             out.flush();
             while (true) {
-                setupChat();
+                waitForResponse();
             }
 
         } catch (UnknownHostException e) {
@@ -75,16 +77,7 @@ public class PCClient extends Application {
         }
     }
 
-    /**
-     * Sets up the waitForResponse input on a new thread
-     * so we can constantly check for response without
-     * interrupting the whole program.
-     */
-    private void setupChat() throws IOException {
 
-                waitForResponse();
-
-    }
 
     /**
      * Sends message to server
@@ -92,8 +85,13 @@ public class PCClient extends Application {
      */
     private void sendMessage(final String txt) {
         Platform.runLater(() -> {
-            out.println(txt);
-            out.flush();
+            //out.println(txt);
+            try {
+                out.writeObject((String) txt);
+                out.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
             System.out.println("wrote: " + txt);
         });
@@ -110,8 +108,10 @@ public class PCClient extends Application {
             try {
                 System.out.println("HERE");
                 Thread.sleep(1000);
-                message = (String) in.readLine();
-                if (message != null) {
+                //message = (String) in.readLine();
+                Object obj = in.readObject();
+                if (obj instanceof String) {
+                    message = (String) obj;
                     messageDisplay.appendText(message); // Update the messageDisplay
                 }
 
@@ -121,7 +121,7 @@ public class PCClient extends Application {
             }
         } while (true);
 
-        //});
+
     }
     @Override
     public void start(Stage primaryStage) throws Exception {
