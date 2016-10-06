@@ -37,22 +37,13 @@ public class PCClient extends Application {
      */
     public void PCClient(String ip) {
         try {
-
-            System.out.println("here");
             server = new Socket(ip, 8012);
-            System.out.println("here2");
+
             out = new ObjectOutputStream(server.getOutputStream());
-            //out = new PrintWriter(server.getOutputStream(), true);
             out.flush();
-            System.out.println("here3");
+
             in = new ObjectInputStream(server.getInputStream());
-            //in = new BufferedReader(new InputStreamReader(server.getInputStream()));
-            System.out.println("here");
-            //Application.launch();
-            System.out.println("here");
-            //Thread.sleep(2000);
-            //out.println("Desktop checking in"); // Let the server know we are the desktop
-            //out.writeUTF("Desktop checkign in");
+
             out.writeObject("Desktop checking in");
             out.flush();
             while (true) {
@@ -85,7 +76,6 @@ public class PCClient extends Application {
      */
     private void sendMessage(final String txt) {
         Platform.runLater(() -> {
-            //out.println(txt);
             try {
                 out.writeObject((String) txt);
                 out.flush();
@@ -102,8 +92,6 @@ public class PCClient extends Application {
      * Once a response is received, the messageDisplay will be updated.
      */
     private void waitForResponse() throws IOException {
-
-        //Platform.runLater(() -> { // Do I actually need runLater when I am already doing this in another thread?
         do {
             try {
                 System.out.println("HERE");
@@ -114,8 +102,7 @@ public class PCClient extends Application {
                     message = (String) obj;
                     messageDisplay.appendText(message); // Update the messageDisplay
                 }
-
-
+                
             } catch (Exception e) {
                 throw new IOException("Server closed?");
             }
