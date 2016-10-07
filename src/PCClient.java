@@ -31,7 +31,6 @@ public class PCClient extends Application {
     private TextArea messageDisplay;
     private VBox conversationsList;
     private ArrayList<Contact> conversations = new ArrayList<>();
-    private String message = "";
     private Contact lookingAt;
     private Boolean start = true;
 
@@ -41,7 +40,7 @@ public class PCClient extends Application {
      * also starts GUI
      * @param ip, the ip to connect to
      */
-    public void PCClient(String ip) {
+    public void startPCClient(String ip) {
         try {
             server = new Socket(ip, 8012);
 
@@ -53,13 +52,11 @@ public class PCClient extends Application {
             out.writeObject("Desktop checking in");
             out.flush();
             while (true) {
-                onReceive();
+                onReceiveFromServer();
             }
 
         } catch (UnknownHostException e) {
             System.out.println("Cannot connect to ip");
-        } catch (IOException e) {
-            e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -67,10 +64,10 @@ public class PCClient extends Application {
                 out.close();
                 in.close();
                 server.close();
-                System.exit(0);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            System.exit(0);
         }
     }
 
@@ -78,18 +75,22 @@ public class PCClient extends Application {
 
     /**
      * Sends message to server
-     * @param txt, String the user typed into inputBar
+     * @param o, An object that differs per intent
+     * EX:
+     *           String will be turned into SendCard which informs the server
+     *           that we want to send a text message.
      */
-    private void sendMessage(final String txt) {
+    private void sendMessage(Object o) {
         Platform.runLater(() -> {
             try {
-                out.writeObject(new SendCard(inputBar.getText(), lookingAt)); // SendCard containing contact info and message
+                if (o instanceof String) {
+                    String s = (String) o;
+                    out.writeObject(new SendCard(s, lookingAt)); // SendCard containing contact info and message
+                }
                 out.flush();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
-            System.out.println("wrote: " + txt);
         });
     }
 
@@ -99,7 +100,7 @@ public class PCClient extends Application {
      *
      * MsgRec -- a new message has been received
      */
-    private void onReceive() throws IOException {  // Thought this name fit better.
+    private void onReceiveFromServer() throws IOException {  // Thought this name fit better.
         do {
             try {
                 Thread.sleep(1000);
@@ -194,7 +195,7 @@ public class PCClient extends Application {
             }
         });
         new Thread(() -> {
-            PCClient("localhost"); // Start the server once the GUI is set up.
+            startPCClient("localhost"); // Start the server once the GUI is set up.
         }).start();
     }
 
