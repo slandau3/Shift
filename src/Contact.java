@@ -4,7 +4,10 @@ import java.util.ArrayList;
 /**
  * Created by Steven Landau on 10/6/2016.
  *
- * This class will be used throughout Shift
+ * This class will be used throughout Shift.
+ *
+ * This class is created and filled for every person
+ * in the user's phone.
  */
 public class Contact implements Serializable {
     private String name;
@@ -19,13 +22,15 @@ public class Contact implements Serializable {
     }
 
     public void addMessage(String message) {
-        messages.add(message);
-        UpdateContacts.updateData(this);
+        this.messages.add(message);
+        new Thread(() -> {
+            UpdateContacts.updateData(this);
+        }).start(); // Once again, no need to waste time on the current thread with slow IO.
     }
 
     public void changeName(String name) {
         this.name = name;
-        UpdateContacts.updateData(this);  // Not sure if this is best here. Maybe do it once all contact info is updated
+        UpdateContacts.updateData(this);
     }
 
     public void changeNumber(String number) {

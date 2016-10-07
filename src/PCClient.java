@@ -10,6 +10,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import sun.plugin2.message.Conversation;
 
 import java.io.*;
 import java.net.Socket;
@@ -19,25 +20,29 @@ import java.util.function.BooleanSupplier;
 
 /**
  * Created by Steven Landau on 10/6/2016.
+ * 
+ * This is the main class for the Shift Client application. 
+ * This class handles setting up the GUI as well as receiving/evaluating output from the server.
+ * This class/application does not follow any particular design pattern.
+ * That said, it has similarities to MVC.
+ * Usage - coming soon //TODO
  */
 public class PCClient extends Application {
 
     private Socket server;
-    //private BufferedReader in;
-    //private PrintWriter out;
     private ObjectInputStream in;
     private ObjectOutputStream out;
     private TextField inputBar;
     private TextArea messageDisplay;
-    private VBox conversationsList;
+    private VBox conversationsBox;
     private ArrayList<Contact> conversations = new ArrayList<>();
     private Contact lookingAt;
     private Boolean start = true;
 
     /**
-     * The constructor for the PCClient class.
-     * Sets up the necessary sockets and streams
-     * also starts GUI
+     * The first non JavaFX class that gets called.
+     * Starts the server and sends the initial message which tells the server who we are.
+     * Goes on to wait for responses from the server.
      * @param ip, the ip to connect to
      */
     public void startPCClient(String ip) {
@@ -49,7 +54,7 @@ public class PCClient extends Application {
 
             in = new ObjectInputStream(server.getInputStream());
 
-            out.writeObject("Desktop checking in");
+            out.writeObject(new PC());  // Let the server know that we are a pc.
             out.flush();
             while (true) {
                 onReceiveFromServer();
@@ -109,18 +114,19 @@ public class PCClient extends Application {
                 if (obj instanceof Contact) {
                     Contact c = (Contact) obj; // The received contact is assumed to have the updated message
                     if (!conversations.contains(c)) {
-                        new Thread(() -> {  // IO is slow. No need to waste time on the main thread writing to a file
+                        new Thread(() -> {  // IO is slow. No need to waste time on this thread, writing to a file
                             UpdateContacts.addContact(c);
                         }).start();
                         conversations.add(c); // only adding it here so I don't have to error check when I remove it next.
-                        //System.out.println("Obtained " + c + " about to hand it over to handleOnReceive()");
+                        handleOnReceive(c);
                     } else {
-                        //System.out.println("Obtained " + c + " about to update then go to handleOnReceive");
-                        new Thread(() -> { // IO is slow. No need to waste time on the main thread reading and writing to a file.
-                            UpdateContacts.updateData(c);
+                        conversations.get(conversations.indexOf(c)).addMessage(c.getMostRecentMessage());  // Add only the most recent messages otherwise user sent messages will be overwritten
+                        Contact updated = conversations.get(conversations.indexOf(c));
+                        new Thread(() -> { // IO is slow. No need to waste time on this thread, reading and writing to a file.
+                            UpdateContacts.updateData(updated);
                         }).start();
+                        handleOnReceive(updated);
                     }
-                    handleOnReceive(c);
                 }  // TODO: Brainstorm a few more possible objects
 
             } catch (Exception e) {
@@ -130,9 +136,15 @@ public class PCClient extends Application {
         } while (true);
     }
 
+    /**]
+     * Adds the contact to our list of conversations.
+     * Updates the GUI to reflect the newly received message.
+     * @param c, the contact updated with whatever message was just received from the server.
+     * @throws FileNotFoundException
+     */
     private void handleOnReceive(Contact c) throws FileNotFoundException {
         conversations.remove(c);
-        conversations.add(c);
+        conversations.add(c); // add it to the end of the list.
 
         // Re-arrange the buttons
         Platform.runLater(() -> {
@@ -163,8 +175,9 @@ public class PCClient extends Application {
             if (event.getCode().equals(KeyCode.ENTER)) {
                 if (!inputBar.getText().trim().equals("")) { // Make sure the user actually sends a message and not a space
                     sendMessage(inputBar.getText());
-                    messageDisplay.appendText(inputBar.getText());
-                    inputBar.clear(); // Is this the same as setting setText to ""
+                    messageDisplay.appendText("\n" + "--CLIENT--: " + inputBar.getText());
+                    lookingAt.addMessage("\n" + "--CLIENT--: " + inputBar.getText());  // Save the messages we sent too because we will need to recall it when we change people.
+                    inputBar.clear();
                 }
             }
         });
@@ -172,12 +185,12 @@ public class PCClient extends Application {
         bp.setBottom(inputBar);
 
         
-        // Set up the conversationsList
+        // Set up the conversationsBox
 
         ScrollPane sp = new ScrollPane();
-        conversationsList = new VBox();
+        conversationsBox = new VBox();
         fillVbox();
-        sp.setContent(conversationsList);
+        sp.setContent(conversationsBox);
         bp.setLeft(sp);
         
         
@@ -201,7 +214,6 @@ public class PCClient extends Application {
      * Fills the left side of the screen with your contacts.
      * Will eventually request the updated contact info from the server.
      * Should store said contact info to a file.
-     *
      *
      *
      */
@@ -235,19 +247,19 @@ public class PCClient extends Application {
                 start = false;
             }
         }
-        conversationsList.getChildren().clear();
+        conversationsBox.getChildren().clear();
         for (int i = conversations.size()-1; i > -1; i--) { // Add contacts gathered from file to the vbox
             System.out.println(conversations.get(i));
             ButtonContact bc = new ButtonContact(conversations.get(i));
             functionality(bc);
-            conversationsList.getChildren().add(bc);
+            conversationsBox.getChildren().add(bc);
 
         }
 
     }
 
     /**
-     * Gives all the buttons in the vbox the appropriate functionality.
+     * Add an action listener to the ButtonContact
      */
     private void functionality(ButtonContact bc) { // Another way to do this would be to store the TextArea in the Contacts class. I might switch to that later.
         bc.setOnAction(event -> {  //TODO: add functionality to save unsent message as draft
