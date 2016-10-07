@@ -22,6 +22,14 @@ public class Contact implements Serializable {
         messages.add(message);
     }
 
+    public void changeName(String name) {
+        this.name = name;
+    }
+
+    public void changeNumber(String number) {
+        this.phoneNumber = number;
+    }
+
     public ArrayList<String> getMessages() {
         return messages;
     }
@@ -29,6 +37,12 @@ public class Contact implements Serializable {
     public String getMostRecentMessage() {
         return messages.get(messages.size()-1);
     }
+
+    public String getName() {
+        return name;
+    }
+
+
 
     @Override
     public boolean equals(Object obj) {

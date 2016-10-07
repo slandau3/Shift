@@ -1,6 +1,7 @@
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -27,7 +28,7 @@ public class PCClient extends Application {
     private TextField inputBar;
     private TextArea messageDisplay;
     private VBox conversationsList;
-    private ArrayList<Contact> conversations;
+    private ArrayList<Contact> conversations = new ArrayList<>();
     private String message = "";
 
     /**
@@ -137,10 +138,12 @@ public class PCClient extends Application {
         bp.setBottom(inputBar);
 
         // Set up the conversationsList
-        // TODO
+
         ScrollPane sp = new ScrollPane();
         conversationsList = new VBox();
-        fillVbox(conversationsList);
+        fillVbox(conversationsList); // TODO: Need to re-order the vbox when a message is received
+        sp.setContent(conversationsList);
+        bp.setLeft(sp);
         // Open the GUI
 
         primaryStage.setScene(new Scene(bp, 500, 500));
@@ -167,28 +170,37 @@ public class PCClient extends Application {
      * @param conversationsList
      */
     private void fillVbox(VBox conversationsList) throws FileNotFoundException {
-        BufferedReader freader = new BufferedReader(new FileReader(new File("test.txt")));
-        String line;
-        PrintWriter pr = new PrintWriter(new File("test.txt"));
-        pr.println(new Contact(null, null, null));
+
+        ObjectInputStream freader = null;
         try {
-            boolean onName = true;
-            boolean onNumber = false;
-            boolean onMessage = false;
-            String name = "";
-            String number = "";
-            ArrayList<String> msgs = new ArrayList<>();
-            int i = 0;
-            while ((line = freader.readLine()) != null) {
-                i++;
-                String[] sLine = line.trim().split(", ");  // Keep an eye on this one
-                if (sLine[0].equals("Name:") || onName) {
-                    name += sLine[i];
+            freader = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
+            while (true) {
+                Object o = freader.readObject();
+                if (o instanceof Contact) {
+                    Contact c = (Contact) o;
+                    conversations.add(c);
                 }
+                // TODO: Decide whether there will ever be anything else here.
             }
         } catch (IOException e) {
+            // go to finally, we ran out of file to read.
+        } catch (ClassNotFoundException e) {
             e.printStackTrace();
+        } finally {
+            if (freader != null) {
+                try {
+                    freader.close();
+                } catch (IOException e) {
+                    e.printStackTrace(); // Should never get here
+                }
+            }
         }
+
+        for (int i = conversations.size()-1; i > -1; i--) { // Add contacts gathered from file to the vbox
+            System.out.println(conversations.get(i));
+            conversationsList.getChildren().add(new ButtonContact(conversations.get(i)));
+        }
+
     }
 
     public static void main(String[] args) {
