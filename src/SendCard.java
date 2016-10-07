@@ -1,7 +1,9 @@
+import java.io.Serializable;
+
 /**
  * Created by Steven Landau on 10/6/2016.
  */
-public class SendCard {
+public class SendCard implements Serializable{
     private String msg;
     private Contact contact;
 

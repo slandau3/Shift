@@ -15,6 +15,7 @@ import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.function.BooleanSupplier;
 
 /**
  * Created by Steven Landau on 10/6/2016.
@@ -32,6 +33,7 @@ public class PCClient extends Application {
     private ArrayList<Contact> conversations = new ArrayList<>();
     private String message = "";
     private Contact lookingAt;
+    private Boolean start = true;
 
     /**
      * The constructor for the PCClient class.
@@ -137,11 +139,10 @@ public class PCClient extends Application {
         Platform.runLater(() -> {
             try {
                 System.out.println("about to fill the box");
-                fillVbox(conversationsList);
+                fillVbox();
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
-            functionality(); // TODO: Need to determine if there is a better way to do this
         });
 
     }
@@ -176,8 +177,7 @@ public class PCClient extends Application {
 
         ScrollPane sp = new ScrollPane();
         conversationsList = new VBox();
-        fillBoxOnStartup();
-        functionality();
+        fillVbox();
         sp.setContent(conversationsList);
         bp.setLeft(sp);
         
@@ -205,18 +205,44 @@ public class PCClient extends Application {
      *
      *
      *
-     * @param conversationsList
      */
-    private void fillVbox(VBox conversationsList) throws FileNotFoundException {
-        Platform.runLater(() -> {
-            conversationsList.getChildren().clear(); // clear the list before we remake it.
-        });
+    private void fillVbox() throws FileNotFoundException {
+        if (start) {
+            ObjectInputStream freader = null;
+            try {
+                freader = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
+
+                conversations.clear();
+                while (true) {
+                    Object o = freader.readObject();
+                    if (o instanceof Contact) {
+                        Contact c = (Contact) o;
+                        //System.out.println("added at 221  " + c);
+                        conversations.add(c);
+                    }
+                    // TODO: Decide whether there will ever be anything else here.
+                }
+            } catch (IOException e) {
+                // go to finally, we ran out of file to read.
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            } finally {
+                if (freader != null) {
+                    try {
+                        freader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace(); // Should never get here
+                    }
+                }
+                start = false;
+            }
+        }
+        conversationsList.getChildren().clear();
         for (int i = conversations.size()-1; i > -1; i--) { // Add contacts gathered from file to the vbox
-            final int finalI = i;
-            Platform.runLater(() -> {
-                System.out.println(conversations.get(finalI));
-                conversationsList.getChildren().add(new ButtonContact(conversations.get(finalI)));
-            });
+            System.out.println(conversations.get(i));
+            ButtonContact bc = new ButtonContact(conversations.get(i));
+            functionality(bc);
+            conversationsList.getChildren().add(bc);
 
         }
 
@@ -225,65 +251,20 @@ public class PCClient extends Application {
     /**
      * Gives all the buttons in the vbox the appropriate functionality.
      */
-    private void functionality() { // Another way to do this would be to store the TextArea in the Contacts class. I might switch to that later.
-        for (Node bc : conversationsList.getChildren()) {
-            System.out.println("going through conversation lists");
-            if (bc instanceof ButtonContact) { // Need to make sure this will work
-                System.out.println("node bc is an instance fo ButtonContact");
-                ButtonContact con = (ButtonContact) bc;
-
-                con.setOnAction(event -> {  //TODO: add functionality to save unsent message as draft
-                    System.out.println("Setting the nonsense on button lick");
-                    inputBar.clear();
-                    messageDisplay.clear();
-                    for (int i = 0; i < con.getContact().getMessages().size(); i++) {
-                        System.out.println("appending text for " + con.getContact() + " with message: " + con.getContact().getMessages().get(i));
-                        messageDisplay.appendText(con.getContact().getMessages().get(i) + "\n");
-                    }
-                    lookingAt = con.getContact(); // now we know we are looking at this contact
-                    // TODO: I feel like I'm forgetting something
-                });
-
+    private void functionality(ButtonContact bc) { // Another way to do this would be to store the TextArea in the Contacts class. I might switch to that later.
+        bc.setOnAction(event -> {  //TODO: add functionality to save unsent message as draft
+            System.out.println("Setting the nonsense on button lick");
+            inputBar.clear();
+            messageDisplay.clear();
+            for (int i = 0; i < bc.getContact().getMessages().size(); i++) {
+                System.out.println("appending text for " + bc.getContact() + " with message: " + bc.getContact().getMessages().get(i));
+                messageDisplay.appendText(bc.getContact().getMessages().get(i) + "\n");
             }
-        }
+            lookingAt = bc.getContact(); // now we know we are looking at this contact
+            // TODO: I feel like I'm forgetting something
+        });
     }
 
-    public void fillBoxOnStartup() {
-
-        ObjectInputStream freader = null;
-        try {
-            freader = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
-
-            conversations.clear();
-            while (true) {
-                Object o = freader.readObject();
-                if (o instanceof Contact) {
-                    Contact c = (Contact) o;
-                    //System.out.println("added at 221  " + c);
-                    conversations.add(c);
-                }
-                // TODO: Decide whether there will ever be anything else here.
-            }
-        } catch (IOException e) {
-            // go to finally, we ran out of file to read.
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } finally {
-            if (freader != null) {
-                try {
-                    freader.close();
-                } catch (IOException e) {
-                    e.printStackTrace(); // Should never get here
-                }
-            }
-        }
-
-        for (int i = conversations.size()-1; i > -1; i--) { // Add contacts gathered from file to the vbox
-            System.out.println(conversations.get(i));
-            conversationsList.getChildren().add(new ButtonContact(conversations.get(i)));
-
-        }
-    }
 
     public static void main(String[] args) {
         Application.launch(args);
