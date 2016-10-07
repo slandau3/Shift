@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 /**
@@ -14,7 +15,7 @@ public class ServerTest {
     private ServerSocket s;
     private Socket client;
     private String message;
-
+    private ArrayList<Contact> cons = new ArrayList<>();
 
     public ServerTest() {
 
@@ -28,7 +29,21 @@ public class ServerTest {
                 out = new ObjectOutputStream(client.getOutputStream());
                 out.flush();
                 in = new ObjectInputStream(client.getInputStream());
-
+                ArrayList<String> a = new ArrayList<>();
+                a.add("msg1");
+                Contact one = new Contact("one", "111", a);
+                Contact two = new Contact("two", "112", a);
+                Contact three = new Contact("three", "113", a);
+                Contact four = new Contact("four", "114", a);
+                System.out.println(one);
+                cons.add(one);
+                cons.add(two);
+                cons.add(three);
+                cons.add(four);
+                for (Contact c : cons) {
+                    out.writeObject(c);
+                    out.flush();
+                }
 
                 /*new Thread(() -> {
 

@@ -83,12 +83,52 @@ public class UpdateContacts {
     }
 
     /**
-     * To be used to update the file when one Contact is changed.
+     * To be used to update the file when one Contact is changed (for messages only).
      * EX: When we receive a message the message will be added to the contacts ArrayList,
      * here it will be saved in the file.
      * @param c an individual contact
      */
     public static void updateData(Contact c) {
         // TODO: similar to the other two but we just want to put the updated information of a Contact into the file
+        ObjectInputStream ois = null;
+        ObjectOutputStream oos = null;
+        try {
+            ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
+            oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser")));
+            while (true) {
+                Object in = ois.readObject();
+                if (in instanceof Contact) {
+                    Contact other = (Contact) in;
+                    if (other.equals(c)) {
+                        oos.writeObject(c);
+                    } else {
+                        oos.writeObject(other);
+                    }
+                    oos.flush();
+                }
+
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            // Reached end of file
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            if (oos != null) {
+                try {
+                    oos.close();  // Close output stream
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (ois != null) {
+                try {
+                    ois.close();  // Close input stream
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }

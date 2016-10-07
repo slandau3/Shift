@@ -14,4 +14,6 @@ public class ButtonContact extends Button {
     public Contact getContact() {
         return this.contact;
     }
+
+
 }
