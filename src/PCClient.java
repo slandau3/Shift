@@ -98,27 +98,27 @@ public class PCClient extends Application {
      * Keeps the client checking for the server's response.
      * Once a response is received, the messageDisplay will be updated.
      *
-     * MsgRec -- a new message has been received
+     * If a Contact object is received then we know that we just received a text message.
      */
     private void onReceiveFromServer() throws IOException {  // Thought this name fit better.
         do {
             try {
-                Thread.sleep(1000);
+                Thread.sleep(100);
 
                 Object obj = in.readObject();
-                if (obj instanceof Contact) { // TODO: Need to make sure this works
-                    //MsgRec mr = (MsgRec) obj;
-                    //message = mr.getMsg();
-                    //String name = mr.getName();
-                    //String pn = mr.getPhoneNumber();
+                if (obj instanceof Contact) {
                     Contact c = (Contact) obj; // The received contact is assumed to have the updated message
                     if (!conversations.contains(c)) {
-                        UpdateContacts.addContact(c);
+                        new Thread(() -> {  // IO is slow. No need to waste time on the main thread writing to a file
+                            UpdateContacts.addContact(c);
+                        }).start();
                         conversations.add(c); // only adding it here so I don't have to error check when I remove it next.
-                        System.out.println("Obtained " + c + " about to hand it over to handleOnReceive()");
+                        //System.out.println("Obtained " + c + " about to hand it over to handleOnReceive()");
                     } else {
-                        System.out.println("Obtained " + c + " about to update then go to handleOnReceive");
-                        UpdateContacts.updateData(c);
+                        //System.out.println("Obtained " + c + " about to update then go to handleOnReceive");
+                        new Thread(() -> { // IO is slow. No need to waste time on the main thread reading and writing to a file.
+                            UpdateContacts.updateData(c);
+                        }).start();
                     }
                     handleOnReceive(c);
                 }  // TODO: Brainstorm a few more possible objects
@@ -132,14 +132,12 @@ public class PCClient extends Application {
 
     private void handleOnReceive(Contact c) throws FileNotFoundException {
         conversations.remove(c);
-        System.out.println("Removed " + c);
-        conversations.add(c); // TODO: make sure this actually puts it at the front.
-        System.out.println("Added " + c); // Going to optomize this later
+        conversations.add(c);
 
         // Re-arrange the buttons
         Platform.runLater(() -> {
             try {
-                System.out.println("about to fill the box");
+                //System.out.println("about to fill the box");
                 fillVbox();
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -150,7 +148,7 @@ public class PCClient extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        primaryStage.setTitle("Shift");
+        primaryStage.setTitle("Shift Client");
         BorderPane bp = new BorderPane();
 
         // Set up the messageDisplay
@@ -218,7 +216,6 @@ public class PCClient extends Application {
                     Object o = freader.readObject();
                     if (o instanceof Contact) {
                         Contact c = (Contact) o;
-                        //System.out.println("added at 221  " + c);
                         conversations.add(c);
                     }
                     // TODO: Decide whether there will ever be anything else here.
@@ -254,15 +251,13 @@ public class PCClient extends Application {
      */
     private void functionality(ButtonContact bc) { // Another way to do this would be to store the TextArea in the Contacts class. I might switch to that later.
         bc.setOnAction(event -> {  //TODO: add functionality to save unsent message as draft
-            System.out.println("Setting the nonsense on button lick");
             inputBar.clear();
             messageDisplay.clear();
             for (int i = 0; i < bc.getContact().getMessages().size(); i++) {
-                System.out.println("appending text for " + bc.getContact() + " with message: " + bc.getContact().getMessages().get(i));
+                //System.out.println("appending text for " + bc.getContact() + " with message: " + bc.getContact().getMessages().get(i));
                 messageDisplay.appendText(bc.getContact().getMessages().get(i) + "\n");
             }
             lookingAt = bc.getContact(); // now we know we are looking at this contact
-            // TODO: I feel like I'm forgetting something
         });
     }
 
