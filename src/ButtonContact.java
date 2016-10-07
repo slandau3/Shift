@@ -10,4 +10,8 @@ public class ButtonContact extends Button {
         super(c.getName());
         this.contact = c;
     }
+
+    public Contact getContact() {
+        return this.contact;
+    }
 }

@@ -11,7 +11,7 @@ import java.util.ArrayList;
  */
 public class UpdateContacts {
 
-    public void addContact(Contact c) {
+    public static void addContact(Contact c) { // Could I just store an arraylist of contacts inside the file?
         ObjectOutputStream oos = null;
         try {
             oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser")));
@@ -32,7 +32,7 @@ public class UpdateContacts {
 
     }
 
-    public void removeContact(Contact c) {
+    public static void removeContact(Contact c) {
         ObjectInputStream ois = null;
         ObjectOutputStream oos = null;
         ArrayList<Contact> holder = new ArrayList<>();
@@ -80,9 +80,15 @@ public class UpdateContacts {
                 }
             }
         }
+    }
 
-
-
-
+    /**
+     * To be used to update the file when one Contact is changed.
+     * EX: When we receive a message the message will be added to the contacts ArrayList,
+     * here it will be saved in the file.
+     * @param c an individual contact
+     */
+    public static void updateData(Contact c) {
+        // TODO: similar to the other two but we just want to put the updated information of a Contact into the file
     }
 }

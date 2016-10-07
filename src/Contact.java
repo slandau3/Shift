@@ -20,14 +20,17 @@ public class Contact implements Serializable {
 
     public void addMessage(String message) {
         messages.add(message);
+        UpdateContacts.updateData(this);
     }
 
     public void changeName(String name) {
         this.name = name;
+        UpdateContacts.updateData(this);  // Not sure if this is best here. Maybe do it once all contact info is updated
     }
 
     public void changeNumber(String number) {
         this.phoneNumber = number;
+        UpdateContacts.updateData(this);
     }
 
     public ArrayList<String> getMessages() {
@@ -42,22 +45,17 @@ public class Contact implements Serializable {
         return name;
     }
 
+    public String getPhoneNumber() {
+        return this.phoneNumber;
+    }
+
 
 
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof Contact) {
             Contact o = (Contact) obj;
-            if (this.name.equals(o.name)) {
-                if (this.phoneNumber.equals(o.phoneNumber)) {
-                    if (this.messages == o.messages) {
-                        return true;
-                    }
-                    return false;
-                }
-                return false;
-            }
-            return false;
+            return this.name.equals(o.name) && this.phoneNumber.equals(o.phoneNumber);
         }
         return false;
     }
