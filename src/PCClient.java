@@ -52,14 +52,14 @@ public class PCClient extends Application {
 
             out.writeObject(new PC());  // Let the server know that we are a pc.
             out.flush();
-            while (true) {
-                onReceiveFromServer();
-            }
+
+            onReceiveFromServer();
+
 
         } catch (UnknownHostException e) {
             System.out.println("Cannot connect to ip");
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace(); // IO exception will show up here
         } finally {
             try {
                 out.close();
@@ -138,7 +138,7 @@ public class PCClient extends Application {
                 }  // TODO: Brainstorm a few more possible objects
 
             } catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
                 throw new IOException("Server closed?");
             }
         } while (true);
@@ -172,13 +172,14 @@ public class PCClient extends Application {
         BorderPane bp = new BorderPane();
 
         // Set up the messageDisplay
-        messageDisplay = new TextArea("");
+        messageDisplay = new TextArea(""); //TODO: Fix bug with text area that makes it so when first clicked the contact name will show up twice.
         messageDisplay.setWrapText(true);
         messageDisplay.setEditable(false);
         bp.setCenter(messageDisplay);
 
         // Set up the inputBar
         inputBar = new TextField();
+        inputBar.setEditable(false);
         inputBar.setOnKeyPressed(event -> {
             if (event.getCode().equals(KeyCode.ENTER)) {
                 if (!inputBar.getText().trim().equals("")) { // Make sure the user actually sends a message and not a space
@@ -208,14 +209,20 @@ public class PCClient extends Application {
         primaryStage.show();
         primaryStage.setOnCloseRequest(event -> {
             try {
+                in.close();
+                out.close();
                 server.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
-        new Thread(() -> {
-            startPCClient("localhost"); // Start the server once the GUI is set up.
-        }).start();
+        try {
+            new Thread(() -> {
+                startPCClient("localhost"); // Start the server once the GUI is set up.
+            }).start();
+        } catch (Exception e) {
+            // do nothing (for now);
+        }
     }
 
     /**
@@ -272,10 +279,15 @@ public class PCClient extends Application {
     private void functionality(ButtonContact bc) { // Another way to do this would be to store the TextArea in the Contacts class. I might switch to that later.
         bc.setOnAction(event -> {  //TODO: add functionality to save unsent message as draft
             inputBar.clear();
+            inputBar.setEditable(true);
             messageDisplay.clear();
             for (int i = 0; i < bc.getContact().getMessages().size(); i++) {
                 //System.out.println("appending text for " + bc.getContact() + " with message: " + bc.getContact().getMessages().get(i));
-                messageDisplay.appendText(bc.getContact().getMessages().get(i) + "\n");
+                if (bc.getContact().getMessages().get(i).startsWith("\n--CLIENT--:")) {
+                    messageDisplay.appendText(bc.getContact().getMessages().get(i));
+                } else {
+                    messageDisplay.appendText("--" + bc.getContact().getName() + "--: " + bc.getContact().getMessages().get(i));
+                }
             }
             lookingAt = bc.getContact(); // now we know we are looking at this contact
         });
