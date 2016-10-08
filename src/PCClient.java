@@ -172,7 +172,7 @@ public class PCClient extends Application {
         BorderPane bp = new BorderPane();
 
         // Set up the messageDisplay
-        messageDisplay = new TextArea(""); //TODO: Fix bug with text area that makes it so when first clicked the contact name will show up twice.
+        messageDisplay = new TextArea("");
         messageDisplay.setWrapText(true);
         messageDisplay.setEditable(false);
         bp.setCenter(messageDisplay);
@@ -198,6 +198,7 @@ public class PCClient extends Application {
 
         ScrollPane sp = new ScrollPane();
         conversationsBox = new VBox();
+        conversationsBox.setMouseTransparent(true);  // Fixes a bug that results from the user clicking a button too fast on startup.
         fillVbox();
         sp.setContent(conversationsBox);
         bp.setLeft(sp);
@@ -264,12 +265,18 @@ public class PCClient extends Application {
         }
         conversationsBox.getChildren().clear();
         for (int i = conversations.size()-1; i > -1; i--) { // Add contacts gathered from file to the vbox
-            System.out.println(conversations.get(i));
+            //System.out.println(conversations.get(i));
             ButtonContact bc = new ButtonContact(conversations.get(i));
             functionality(bc);
             conversationsBox.getChildren().add(bc);
 
         }
+        try {
+            Thread.sleep(100);  // Fixes a bug that results from the user clicking a button too fast.
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        conversationsBox.setMouseTransparent(false);
 
     }
 
