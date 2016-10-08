@@ -8,18 +8,24 @@ import java.io.Serializable;
  */
 public class SendCard implements Serializable{
     private String msg;
-    private Contact contact;
+    private String number;
+    private String name;
 
-    public SendCard(String msg, Contact contact) {
+    public SendCard(String msg, String number, String name) {
         this.msg = msg;
-        this.contact = contact;
+        this.number = number;
+        this.name = name;
     }
 
     public String getMsg() {
         return msg;
     }
 
-    public Contact getContact() {
-        return contact;
+    public String getNumber() {
+        return this.number;
+    }
+
+    public String getName() {
+        return this.name;
     }
 }

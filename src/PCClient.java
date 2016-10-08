@@ -1,8 +1,6 @@
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -10,13 +8,11 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import sun.plugin2.message.Conversation;
 
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.function.BooleanSupplier;
 
 /**
  * Created by Steven Landau on 10/6/2016.
@@ -90,7 +86,8 @@ public class PCClient extends Application {
             try {
                 if (o instanceof String) {
                     String s = (String) o;
-                    out.writeObject(new SendCard(s, lookingAt)); // SendCard containing contact info and message
+
+                    out.writeObject(new SendCard(s, lookingAt.getPhoneNumber(), lookingAt.getName())); // SendCard containing contact info and message
                 }
                 out.flush();
             } catch (IOException e) {
@@ -111,21 +108,32 @@ public class PCClient extends Application {
                 Thread.sleep(100);
 
                 Object obj = in.readObject();
-                if (obj instanceof Contact) {
-                    Contact c = (Contact) obj; // The received contact is assumed to have the updated message
-                    if (!conversations.contains(c)) {
-                        new Thread(() -> {  // IO is slow. No need to waste time on this thread, writing to a file
-                            UpdateContacts.addContact(c);
-                        }).start();
-                        conversations.add(c); // only adding it here so I don't have to error check when I remove it next.
-                        handleOnReceive(c);
-                    } else {
-                        conversations.get(conversations.indexOf(c)).addMessage(c.getMostRecentMessage());  // Add only the most recent messages otherwise user sent messages will be overwritten
-                        Contact updated = conversations.get(conversations.indexOf(c));
+                if (obj instanceof SendCard) {
+                    SendCard sc = (SendCard) obj; // The received contact is assumed to have the updated message
+                    Contact curr = null;
+                    for (int i = 0; i < conversations.size(); i++) {
+                        if (sc.getNumber().equals(conversations.get(i).getPhoneNumber())) {
+                            conversations.get(i).addMessage(sc.getMsg());
+                            curr = conversations.get(i);   // Determine if we have the contact in our contacts list.
+                            break;
+                        }
+                    }
+                    if (curr != null) {   // If we found them do this.
+                        final Contact finalCurr = curr;     // Make final for sake of lambda
                         new Thread(() -> { // IO is slow. No need to waste time on this thread, reading and writing to a file.
-                            UpdateContacts.updateData(updated);
+                            UpdateContacts.updateData(finalCurr);
                         }).start();
-                        handleOnReceive(updated);
+                        handleOnReceive(finalCurr);
+                    } else {    // Do not currently have this contact
+                        ArrayList<String> temp = new ArrayList<String>();
+                        temp.add(sc.getMsg());
+                        curr = new Contact(sc.getName(), sc.getNumber(), temp);
+                        final Contact finalCurr1 = curr; // For sake of lambda
+                        new Thread(() -> {  // IO is slow. No need to waste time on this thread, writing to a file
+                            UpdateContacts.addContact(finalCurr1);
+                        }).start();
+                        conversations.add(curr); // only adding it here so I don't have to error check when I remove it next.
+                        handleOnReceive(curr);
                     }
                 }  // TODO: Brainstorm a few more possible objects
 

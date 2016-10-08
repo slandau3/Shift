@@ -60,7 +60,7 @@ public class Contact implements Serializable {
     public boolean equals(Object obj) {
         if (obj instanceof Contact) {
             Contact o = (Contact) obj;
-            return this.name.equals(o.name) && this.phoneNumber.equals(o.phoneNumber);
+            return this.phoneNumber.equals(o.phoneNumber);
         }
         return false;
     }
