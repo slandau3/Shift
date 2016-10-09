@@ -241,6 +241,7 @@ public class PCClient extends Application {
     private void fillVbox() throws FileNotFoundException {
         if (start) {  // Get the contacts from the file only once the program starts
             uc.getContacts(conversations);
+
             start = false;
         }
         for (int i = 0; i < conversations.size(); i++) {

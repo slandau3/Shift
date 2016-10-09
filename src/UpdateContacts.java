@@ -16,8 +16,9 @@ public class UpdateContacts {
 
     public UpdateContacts() {
         try {
-            this.ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
             this.oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser")));
+            oos.flush();
+            this.ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -29,7 +30,6 @@ public class UpdateContacts {
     public void addContact(Contact c) { // Could I just store an arraylist of contacts inside the file?
         try {
             oos.writeObject(c);
-            System.out.println(c + " written");
             oos.flush();
             //System.out.println(c + " Written");
         } catch (IOException e) {
@@ -110,6 +110,7 @@ public class UpdateContacts {
             e.printStackTrace();
         }
     }
+
 
     public void getContacts(ArrayList<Contact> cons) {
         try {
