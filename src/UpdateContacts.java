@@ -11,30 +11,53 @@ import java.util.zip.InflaterInputStream;
  *
  */
 public class UpdateContacts {
-    public ObjectInputStream ois;
-    public ObjectOutputStream oos;
+
 
     public UpdateContacts() {
+        ObjectOutputStream oos = null;
+        ObjectInputStream ois = null;
         try {
-            this.oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser")));
+            // Just do this so reading the file does not give us a problem
+            oos= new ObjectOutputStream(new FileOutputStream(new File("contacts.ser"), true));
             oos.flush();
-            this.ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
+            ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));   // This may not solve our problems
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (oos != null) {
+                    oos.close();
+                }
+                if (ois != null) {
+                    ois.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
 
     public void addContact(Contact c) { // Could I just store an arraylist of contacts inside the file?
+        ObjectOutputStream oos = null;
         try {
+            oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser"), true));
             oos.writeObject(c);
             oos.flush();
             //System.out.println(c + " Written");
         } catch (IOException e) {
             e.printStackTrace();
             // Should not get here
+        } finally {
+            if (oos != null) {
+                try {
+                    oos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -86,35 +109,40 @@ public class UpdateContacts {
      * @param c an individual contact
      */
     public void updateData(Contact c) {
-
+        ObjectOutputStream oos = null;
+        ObjectInputStream ois = null;
+        ArrayList<Contact> temp = new ArrayList<>();
+        getContacts(temp);
         try {
-            while (true) {
-                Object in = ois.readObject();
-                if (in instanceof Contact) {
-                    Contact other = (Contact) in;
-                    if (other.equals(c)) {
-                        oos.writeObject(c);
-                    } else {
-                        oos.writeObject(other);
-                    }
-                    System.out.println("flushing");
-                    oos.flush();
+            oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser"))); // We want this to delete the contents of the file
+            for (Contact con : temp) {
+                if (con.equals(c)) {
+                    oos.writeObject(c);
+                } else {
+                    oos.writeObject(con);
                 }
-
+                oos.flush();
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
-            // Reached end of file
-        } catch (ClassNotFoundException e) {
             e.printStackTrace();
+        } finally {
+            if (oos != null) {
+                try {
+                    oos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
 
     public void getContacts(ArrayList<Contact> cons) {
+        ObjectInputStream ois = null;
         try {
-
+            ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
             while (true) {
                 Object o = ois.readObject();
                 if (o instanceof Contact) {
@@ -128,15 +156,14 @@ public class UpdateContacts {
             // End of file
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
-        }
-    }
-
-    public void closeAll() {
-        try {
-            oos.close();
-            ois.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } finally {
+            if (ois != null) {
+                try {
+                    ois.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }

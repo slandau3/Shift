@@ -89,6 +89,7 @@ public class PCClient extends Application {
                     String s = (String) o;
 
                     out.writeObject(new SendCard(s, lookingAt.getPhoneNumber(), lookingAt.getName())); // SendCard containing contact info and message
+                    uc.updateData(lookingAt);
                 }
                 out.flush();
             } catch (IOException e) {
@@ -110,13 +111,13 @@ public class PCClient extends Application {
 
                 Object obj = in.readObject();
                 if (obj instanceof SendCard) {
-                    SendCard sc = (SendCard) obj; // The received contact is assumed to have the updated message
+                    SendCard sc = (SendCard) obj;
                     Contact curr = null;
                     for (int i = 0; i < conversations.size(); i++) {
                         if (sc.getNumber().equals(conversations.get(i).getPhoneNumber())) {
                             conversations.get(i).addMessage(sc.getMsg());
                             uc.updateData(conversations.get(i));
-                            curr = conversations.get(i);   // Determine if we have the contact in our contacts list.
+                            curr = conversations.get(i);   // We found the contact in our list of contacts
                             break;
                         }
                     }
@@ -187,9 +188,9 @@ public class PCClient extends Application {
         inputBar.setOnKeyPressed(event -> {
             if (event.getCode().equals(KeyCode.ENTER)) {
                 if (!inputBar.getText().trim().equals("")) { // Make sure the user actually sends a message and not a space
+                    lookingAt.addMessage("--CLIENT--: " + inputBar.getText());  // Save the messages we sent too because we will need to recall it when we change people.
                     sendMessage(inputBar.getText());
-                    messageDisplay.appendText("\n" + "--CLIENT--: " + inputBar.getText());
-                    lookingAt.addMessage("\n" + "--CLIENT--: " + inputBar.getText());  // Save the messages we sent too because we will need to recall it when we change people.
+                    messageDisplay.appendText("--CLIENT--: " + inputBar.getText());
                     inputBar.clear();
                 }
             }
@@ -214,7 +215,6 @@ public class PCClient extends Application {
         primaryStage.show();
         primaryStage.setOnCloseRequest(event -> {
             try {
-                uc.closeAll();
                 in.close();
                 out.close();
                 server.close();
@@ -244,9 +244,7 @@ public class PCClient extends Application {
 
             start = false;
         }
-        for (int i = 0; i < conversations.size(); i++) {
-            System.out.println(conversations.get(i));
-        }
+
         conversationsBox.getChildren().clear();
         for (int i = conversations.size()-1; i > -1; i--) { // Add contacts gathered from file to the vbox
             ButtonContact bc = new ButtonContact(conversations.get(i));
@@ -272,10 +270,10 @@ public class PCClient extends Application {
             inputBar.setEditable(true);
             messageDisplay.clear();
             for (int i = 0; i < bc.getContact().getMessages().size(); i++) {
-                if (bc.getContact().getMessages().get(i).startsWith("\n--CLIENT--:")) {
-                    messageDisplay.appendText(bc.getContact().getMessages().get(i));
+                if (bc.getContact().getMessages().get(i).startsWith("--CLIENT--:")) {
+                    messageDisplay.appendText(bc.getContact().getMessages().get(i) + "\n");
                 } else {
-                    messageDisplay.appendText("--" + bc.getContact().getName() + "--: " + bc.getContact().getMessages().get(i));
+                    messageDisplay.appendText("--" + bc.getContact().getName() + "--: " + bc.getContact().getMessages().get(i) + "\n");
                 }
             }
             lookingAt = bc.getContact(); // now we know we are looking at this contact
