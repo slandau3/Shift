@@ -3,41 +3,46 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.zip.InflaterInputStream;
 
 /**
  * Created by Steven Landau on 10/6/2016.
  *
- * TODO: I have yet to decide when exactly this class will be used
+ *
  */
 public class UpdateContacts {
+    public ObjectInputStream ois;
+    public ObjectOutputStream oos;
 
-    public static void addContact(Contact c) { // Could I just store an arraylist of contacts inside the file?
-        ObjectOutputStream oos = null;
+    public UpdateContacts() {
         try {
-            oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser")));
+            this.ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
+            this.oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser")));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public void addContact(Contact c) { // Could I just store an arraylist of contacts inside the file?
+        try {
             oos.writeObject(c);
+            System.out.println(c + " written");
             oos.flush();
+            //System.out.println(c + " Written");
         } catch (IOException e) {
             e.printStackTrace();
             // Should not get here
-        } finally {
-            if (oos != null) {
-                try {
-                    oos.close();
-                } catch (IOException e) {
-                    e.printStackTrace(); // Should never get here
-                }
-            }
         }
-
     }
 
-    public static void removeContact(Contact c) {
+    public void removeContact(Contact c) {  // DO NOT USE THIS METHOD FOR NOW
         ObjectInputStream ois = null;
         ObjectOutputStream oos = null;
         ArrayList<Contact> holder = new ArrayList<>();
         try {
-            ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
             while (true) {
                 Object o = ois.readObject();
                 if (o instanceof Contact) {
@@ -51,14 +56,6 @@ public class UpdateContacts {
             // Out of things to read.
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
-        } finally {
-            if (ois != null) {
-                try {
-                    ois.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
         Path path = FileSystems.getDefault().getPath(System.getProperty("user.dir"), "contacts.ser"); // We are going to delete and remake this file without a specific contact.
         try {
@@ -88,13 +85,9 @@ public class UpdateContacts {
      * here it will be saved in the file.
      * @param c an individual contact
      */
-    public static void updateData(Contact c) {
-        // TODO: similar to the other two but we just want to put the updated information of a Contact into the file
-        ObjectInputStream ois = null;
-        ObjectOutputStream oos = null;
+    public void updateData(Contact c) {
+
         try {
-            ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
-            oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser")));
             while (true) {
                 Object in = ois.readObject();
                 if (in instanceof Contact) {
@@ -104,6 +97,7 @@ public class UpdateContacts {
                     } else {
                         oos.writeObject(other);
                     }
+                    System.out.println("flushing");
                     oos.flush();
                 }
 
@@ -114,21 +108,34 @@ public class UpdateContacts {
             // Reached end of file
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
-        } finally {
-            if (oos != null) {
-                try {
-                    oos.close();  // Close output stream
-                } catch (IOException e) {
-                    e.printStackTrace();
+        }
+    }
+
+    public void getContacts(ArrayList<Contact> cons) {
+        try {
+
+            while (true) {
+                Object o = ois.readObject();
+                if (o instanceof Contact) {
+                    Contact c = (Contact) o;
+                    cons.add(c);
                 }
             }
-            if (ois != null) {
-                try {
-                    ois.close();  // Close input stream
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            // End of file
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void closeAll() {
+        try {
+            oos.close();
+            ois.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

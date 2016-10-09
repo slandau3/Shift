@@ -23,19 +23,14 @@ public class Contact implements Serializable {
 
     public void addMessage(String message) {
         this.messages.add(message);
-        new Thread(() -> {
-            UpdateContacts.updateData(this);
-        }).start(); // Once again, no need to waste time on the current thread with slow IO.
     }
 
     public void changeName(String name) {
         this.name = name;
-        UpdateContacts.updateData(this);
     }
 
     public void changeNumber(String number) {
         this.phoneNumber = number;
-        UpdateContacts.updateData(this);
     }
 
     public ArrayList<String> getMessages() {

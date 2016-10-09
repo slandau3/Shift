@@ -34,7 +34,7 @@ public class PCClient extends Application {
     private ArrayList<Contact> conversations = new ArrayList<>();
     private Contact lookingAt;
     private Boolean start = true;
-
+    private UpdateContacts uc = new UpdateContacts();
     /**
      * The first non JavaFX class that gets called.
      * Starts the server and sends the initial message which tells the server who we are.
@@ -114,6 +114,7 @@ public class PCClient extends Application {
                     for (int i = 0; i < conversations.size(); i++) {
                         if (sc.getNumber().equals(conversations.get(i).getPhoneNumber())) {
                             conversations.get(i).addMessage(sc.getMsg());
+                            uc.updateData(conversations.get(i));
                             curr = conversations.get(i);   // Determine if we have the contact in our contacts list.
                             break;
                         }
@@ -121,17 +122,19 @@ public class PCClient extends Application {
                     if (curr != null) {   // If we found them do this.
                         final Contact finalCurr = curr;     // Make final for sake of lambda
                         new Thread(() -> { // IO is slow. No need to waste time on this thread, reading and writing to a file.
-                            UpdateContacts.updateData(finalCurr);
+                            uc.updateData(finalCurr);
                         }).start();
                         handleOnReceive(finalCurr);
+
                     } else {    // Do not currently have this contact
                         ArrayList<String> temp = new ArrayList<String>();
                         temp.add(sc.getMsg());
                         curr = new Contact(sc.getName(), sc.getNumber(), temp);
                         final Contact finalCurr1 = curr; // For sake of lambda
                         new Thread(() -> {  // IO is slow. No need to waste time on this thread, writing to a file
-                            UpdateContacts.addContact(finalCurr1);
+                            uc.addContact(finalCurr1);
                         }).start();
+
                         conversations.add(curr); // only adding it here so I don't have to error check when I remove it next.
                         handleOnReceive(curr);
                     }
@@ -210,6 +213,7 @@ public class PCClient extends Application {
         primaryStage.show();
         primaryStage.setOnCloseRequest(event -> {
             try {
+                uc.closeAll();
                 in.close();
                 out.close();
                 server.close();
@@ -235,21 +239,27 @@ public class PCClient extends Application {
      */
     private void fillVbox() throws FileNotFoundException {
         if (start) {
-            ObjectInputStream freader = null;
+            uc.getContacts(conversations);
+            start = false;
+            /*ObjectInputStream freader = null;
             try {
+                File a = new File("contacts.ser");
+                System.out.println(a.setReadable(true));
                 freader = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
-
                 conversations.clear();
                 while (true) {
                     Object o = freader.readObject();
+                    System.out.println(o.getClass());
                     if (o instanceof Contact) {
                         Contact c = (Contact) o;
                         conversations.add(c);
+                        System.out.println("here");
                     }
                     // TODO: Decide whether there will ever be anything else here.
                 }
-            } catch (IOException e) {
+            } catch (IOException e) {  // TODO: add file not found exception
                 // go to finally, we ran out of file to read.
+                e.printStackTrace();
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             } finally {
@@ -261,7 +271,10 @@ public class PCClient extends Application {
                     }
                 }
                 start = false;
-            }
+            }*/
+        }
+        for (int i = 0; i < conversations.size(); i++) {
+            System.out.println(conversations.get(i));
         }
         conversationsBox.getChildren().clear();
         for (int i = conversations.size()-1; i > -1; i--) { // Add contacts gathered from file to the vbox
