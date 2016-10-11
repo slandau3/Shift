@@ -2,15 +2,21 @@ import edu.rit.cs.steven_landau.shiftmobile.Mobile;
 import edu.rit.cs.steven_landau.shiftmobile.SendCard;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.Background;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.awt.*;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -61,7 +67,7 @@ public class PCClient extends Application {
 
         } catch (UnknownHostException e) {
             System.out.println("Cannot connect to ip");
-        } catch (Exception e) {
+        } catch (Exception e) {  // TODO: modify this catch. may want it to just error out
             //e.printStackTrace(); // IO exception will show up here
         } finally {
             try {
@@ -168,19 +174,41 @@ public class PCClient extends Application {
         // Re-arrange the buttons
         Platform.runLater(() -> {
             try {
-                //System.out.println("about to fill the box");
                 fillVbox();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-        });
 
+                    for (Node n : conversationsBox.getChildren()) {
+                        if (n instanceof ButtonContact) {
+                            ButtonContact bc = (ButtonContact) n;
+                            if (bc.getContact().equals(c)) {
+                                if (c.equals(lookingAt)) {
+                                    bc.fire(); // Automatically update the screen
+                                } // Automatically update the screen if we are already looking at the button we just received a message from
+                                else {
+                                    bc.setStyle("-fx-background-color: ORANGE");
+                                }
+                            }
+                        }
+                    }
+                 // Automatically update the screen if we are already looking at the button we just received a message from
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();  // Should not get here
+            }
+
+        });
     }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
         primaryStage.setTitle("Shift Client");
         BorderPane bp = new BorderPane();
+        //Set up menu at top
+        MenuBar mb = new MenuBar();
+        Menu mFile = new Menu("File");
+        mb.getMenus().add(mFile);
+        //MenuItem newConversation = new MenuItem("Start New Conversation");
+        //mFile.getItems().add(newConversation);
+
+        bp.setTop(mb);
 
         // Set up the messageDisplay
         messageDisplay = new TextArea("");
@@ -234,6 +262,8 @@ public class PCClient extends Application {
             }).start();
         } catch (Exception e) {
             // do nothing (for now);
+            System.out.println("connection closed unexpectedly");  // TODO: Create an error message
+            primaryStage.close();
         }
     }
 
@@ -284,6 +314,7 @@ public class PCClient extends Application {
                 }
             }
             lookingAt = bc.getContact(); // now we know we are looking at this contact
+            bc.setStyle(null);
         });
     }
 

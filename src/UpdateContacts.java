@@ -38,15 +38,13 @@ public class UpdateContacts {
                 oos = new AppendableObjectOutputStream(new FileOutputStream(new File("contacts.ser"), true));
                 oos.flush();
                 ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
-            } catch (StreamCorruptedException sce) {
+            } catch (StreamCorruptedException | EOFException sce) {
                 oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser")));
                 oos.flush();
                 ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
         } finally {
             try {
                 if (oos != null) {
