@@ -17,10 +17,32 @@ public class UpdateContacts {
         ObjectOutputStream oos = null;
         ObjectInputStream ois = null;
         try {
-            // Just do this so reading the file does not give us a problem
-            oos= new ObjectOutputStream(new FileOutputStream(new File("contacts.ser"), true));
-            oos.flush();
-            ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));   // This may not solve our problems
+            /**
+             * Bare with me on this one.
+             * So I learned that you cannot technically 'append' to an ObjectOutputStream,
+             * attempting to do so will give you a ton of errors. The way to get arround this
+             * is to make a new class ( I called it AppendableObjectOutputStream ) which overrides
+             * a method, thus letting you 'append' to a file. This is black magic. What I believe
+             * the method actually does is it writes a new header every time, thus by resetting
+             * the header in the overriden method, we are technically appending to the file by
+             * making a bunch of new "files within the file". The code below will attempt to
+             * a AppendableObjectOutputStream. The reason it is in a try catch is because, in
+             * the event the originall header is overwritten, an error will be thrown when we
+             * try to read from the file and file will be corrupted. We can get past this
+             * by resetting the file with a normal ObjectOutputStream if this occurs. So to
+             * reiterate, use AppendableObjectOutputStream when you want to append to a file.
+             * Be careful with it, I have noticed that appending to a serializable file can
+             * easily corrupt said file.
+             */
+            try {
+                oos = new AppendableObjectOutputStream(new FileOutputStream(new File("contacts.ser"), true));
+                oos.flush();
+                ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
+            } catch (StreamCorruptedException sce) {
+                oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser")));
+                oos.flush();
+                ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
+            }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -29,9 +51,11 @@ public class UpdateContacts {
             try {
                 if (oos != null) {
                     oos.close();
+                    System.out.println("closed constructor oos");
                 }
                 if (ois != null) {
                     ois.close();
+                    System.out.println("closed constructor ois");
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -40,13 +64,14 @@ public class UpdateContacts {
     }
 
 
-    public void addContact(Contact c) { // Could I just store an arraylist of contacts inside the file?
-        ObjectOutputStream oos = null;
+    public void addContact(final Contact c) { // Could I just store an arraylist of contacts inside the file?
+        AppendableObjectOutputStream oos = null;
         try {
-            oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser"), true));
+            oos = new AppendableObjectOutputStream(new FileOutputStream(new File("contacts.ser"), true));
+            oos.flush();
             oos.writeObject(c);
             oos.flush();
-            //System.out.println(c + " Written");
+            System.out.println(c + " Written");
         } catch (IOException e) {
             e.printStackTrace();
             // Should not get here
@@ -54,53 +79,20 @@ public class UpdateContacts {
             if (oos != null) {
                 try {
                     oos.close();
+                    System.out.println("closed successfully");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         }
-    }
-
-    public void removeContact(Contact c) {  // DO NOT USE THIS METHOD FOR NOW
-        ObjectInputStream ois = null;
-        ObjectOutputStream oos = null;
-        ArrayList<Contact> holder = new ArrayList<>();
-        try {
-            while (true) {
-                Object o = ois.readObject();
-                if (o instanceof Contact) {
-                    Contact con = (Contact) o;
-                    if (!con.equals(c)) {
-                        holder.add(con);
-                    }
-                }
-            }
-        } catch (IOException e) {
-            // Out of things to read.
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        Path path = FileSystems.getDefault().getPath(System.getProperty("user.dir"), "contacts.ser"); // We are going to delete and remake this file without a specific contact.
-        try {
-            Files.delete(path);
-            oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser")));
-            for (Contact con : holder) {
-                oos.writeObject(con);
-                oos.flush();
-
-            }
-        } catch (IOException e) {
-            e.printStackTrace(); //fnf
-        } finally {
-            if (oos != null) {
-                try {
-                    oos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        System.out.println("here");
+        ArrayList<Contact> temp = new ArrayList<>();
+        getContacts(temp);
+        for (Contact e : temp) {
+            System.out.println(e);
         }
     }
+
 
     /**
      * To be used to update the file when one Contact is changed (for messages only).
@@ -110,9 +102,9 @@ public class UpdateContacts {
      */
     public void updateData(Contact c) {
         ObjectOutputStream oos = null;
-        ObjectInputStream ois = null;
         ArrayList<Contact> temp = new ArrayList<>();
         getContacts(temp);
+
         try {
             oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser"))); // We want this to delete the contents of the file
             for (Contact con : temp) {
@@ -140,30 +132,43 @@ public class UpdateContacts {
 
 
     public void getContacts(ArrayList<Contact> cons) {
+        System.out.println("here");
+
         ObjectInputStream ois = null;
         try {
+            System.out.println("here2");
             ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
+
             while (true) {
+                System.out.println("here3");
                 Object o = ois.readObject();
+                System.out.println("here4");
                 if (o instanceof Contact) {
                     Contact c = (Contact) o;
+                    System.out.println("Got contact : " + c);
                     cons.add(c);
                 }
+                System.out.println("Got nuttin");
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-        } catch (IOException e) {
-            // End of file
+        } catch (EOFException eofe) {
+            // do nothing
+        }
+        catch (IOException e) {
+            e.printStackTrace();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } finally {
             if (ois != null) {
                 try {
                     ois.close();
+                    System.out.println("output stream closed");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         }
+        System.out.println(cons);
     }
 }

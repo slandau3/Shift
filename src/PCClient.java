@@ -1,3 +1,4 @@
+import edu.rit.cs.steven_landau.shiftmobile.Mobile;
 import edu.rit.cs.steven_landau.shiftmobile.SendCard;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -112,6 +113,7 @@ public class PCClient extends Application {
 
                 Object obj = in.readObject();
                 if (obj instanceof SendCard) {
+                    System.out.println("received");
                     SendCard sc = (SendCard) obj;
                     Contact curr = null;
                     for (int i = 0; i < conversations.size(); i++) {
@@ -119,6 +121,7 @@ public class PCClient extends Application {
                             conversations.get(i).addMessage(sc.getMsg());
                             uc.updateData(conversations.get(i));
                             curr = conversations.get(i);   // We found the contact in our list of contacts
+                            System.out.println("found");
                             break;
                         }
                     }
@@ -126,6 +129,7 @@ public class PCClient extends Application {
                         final Contact finalCurr = curr;     // Make final for sake of lambda
                         new Thread(() -> { // IO is slow. No need to waste time on this thread, reading and writing to a file.
                             uc.updateData(finalCurr);
+                            System.out.println("updating contact");
                         }).start();
                         handleOnReceive(finalCurr);
 
@@ -136,6 +140,7 @@ public class PCClient extends Application {
                         final Contact finalCurr1 = curr; // For sake of lambda
                         new Thread(() -> {  // IO is slow. No need to waste time on this thread, writing to a file
                             uc.addContact(finalCurr1);
+                            System.out.println("adding contact");
                         }).start();
 
                         conversations.add(curr); // only adding it here so I don't have to error check when I remove it next.
@@ -225,7 +230,7 @@ public class PCClient extends Application {
         });
         try {
             new Thread(() -> {
-                startPCClient("68.180.86.23"); // Start the server once the GUI is set up.
+                startPCClient("localhost"); // Start the server once the GUI is set up.
             }).start();
         } catch (Exception e) {
             // do nothing (for now);
