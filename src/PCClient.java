@@ -1,3 +1,4 @@
+import edu.rit.cs.steven_landau.shiftmobile.SendCard;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -79,7 +80,7 @@ public class PCClient extends Application {
      * Sends message to server
      * @param o, An object that differs per intent
      * EX:
-     *           String will be turned into SendCard which informs the server
+     *           String will be turned into edu.rit.cs.steven_landau.shiftmobile.SendCard which informs the server
      *           that we want to send a text message.
      */
     private void sendMessage(Object o) {
@@ -88,7 +89,7 @@ public class PCClient extends Application {
                 if (o instanceof String) {
                     String s = (String) o;
 
-                    out.writeObject(new SendCard(s, lookingAt.getPhoneNumber(), lookingAt.getName())); // SendCard containing contact info and message
+                    out.writeObject(new SendCard(s, lookingAt.getPhoneNumber(), lookingAt.getName())); // edu.rit.cs.steven_landau.shiftmobile.SendCard containing contact info and message
                     uc.updateData(lookingAt);
                 }
                 out.flush();
@@ -224,7 +225,7 @@ public class PCClient extends Application {
         });
         try {
             new Thread(() -> {
-                startPCClient("localhost"); // Start the server once the GUI is set up.
+                startPCClient("68.180.86.23"); // Start the server once the GUI is set up.
             }).start();
         } catch (Exception e) {
             // do nothing (for now);

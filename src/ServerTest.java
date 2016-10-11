@@ -1,8 +1,9 @@
+import edu.rit.cs.steven_landau.shiftmobile.SendCard;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 /**
  * Created by Steven Landau on 10/6/2016.
