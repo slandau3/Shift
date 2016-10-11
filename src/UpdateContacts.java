@@ -20,14 +20,14 @@ public class UpdateContacts {
             /**
              * Bare with me on this one.
              * So I learned that you cannot technically 'append' to an ObjectOutputStream,
-             * attempting to do so will give you a ton of errors. The way to get arround this
+             * attempting to do so will give you a ton of errors. The way to get around this
              * is to make a new class ( I called it AppendableObjectOutputStream ) which overrides
              * a method, thus letting you 'append' to a file. This is black magic. What I believe
              * the method actually does is it writes a new header every time, thus by resetting
-             * the header in the overriden method, we are technically appending to the file by
+             * the header in the overridden method, we are technically appending to the file by
              * making a bunch of new "files within the file". The code below will attempt to
              * a AppendableObjectOutputStream. The reason it is in a try catch is because, in
-             * the event the originall header is overwritten, an error will be thrown when we
+             * the event the original header is overwritten, an error will be thrown when we
              * try to read from the file and file will be corrupted. We can get past this
              * by resetting the file with a normal ObjectOutputStream if this occurs. So to
              * reiterate, use AppendableObjectOutputStream when you want to append to a file.
@@ -51,11 +51,9 @@ public class UpdateContacts {
             try {
                 if (oos != null) {
                     oos.close();
-                    System.out.println("closed constructor oos");
                 }
                 if (ois != null) {
                     ois.close();
-                    System.out.println("closed constructor ois");
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -71,7 +69,6 @@ public class UpdateContacts {
             oos.flush();
             oos.writeObject(c);
             oos.flush();
-            System.out.println(c + " Written");
         } catch (IOException e) {
             e.printStackTrace();
             // Should not get here
@@ -79,13 +76,11 @@ public class UpdateContacts {
             if (oos != null) {
                 try {
                     oos.close();
-                    System.out.println("closed successfully");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         }
-        System.out.println("here");
         ArrayList<Contact> temp = new ArrayList<>();
         getContacts(temp);
         for (Contact e : temp) {
@@ -115,8 +110,6 @@ public class UpdateContacts {
                 }
                 oos.flush();
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -132,43 +125,33 @@ public class UpdateContacts {
 
 
     public void getContacts(ArrayList<Contact> cons) {
-        System.out.println("here");
 
         ObjectInputStream ois = null;
         try {
-            System.out.println("here2");
             ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
 
             while (true) {
-                System.out.println("here3");
                 Object o = ois.readObject();
-                System.out.println("here4");
                 if (o instanceof Contact) {
                     Contact c = (Contact) o;
-                    System.out.println("Got contact : " + c);
                     cons.add(c);
                 }
-                System.out.println("Got nuttin");
             }
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException | ClassNotFoundException e) {
             e.printStackTrace();
         } catch (EOFException eofe) {
             // do nothing
         }
         catch (IOException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
         } finally {
             if (ois != null) {
                 try {
                     ois.close();
-                    System.out.println("output stream closed");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         }
-        System.out.println(cons);
     }
 }

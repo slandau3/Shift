@@ -196,7 +196,7 @@ public class PCClient extends Application {
                 if (!inputBar.getText().trim().equals("")) { // Make sure the user actually sends a message and not a space
                     lookingAt.addMessage("--CLIENT--: " + inputBar.getText());  // Save the messages we sent too because we will need to recall it when we change people.
                     sendMessage(inputBar.getText());
-                    messageDisplay.appendText("--CLIENT--: " + inputBar.getText());
+                    messageDisplay.appendText("--CLIENT--: " + inputBar.getText() + "\n");
                     inputBar.clear();
                 }
             }
@@ -254,6 +254,7 @@ public class PCClient extends Application {
         conversationsBox.getChildren().clear();
         for (int i = conversations.size()-1; i > -1; i--) { // Add contacts gathered from file to the vbox
             ButtonContact bc = new ButtonContact(conversations.get(i));
+            bc.setPrefSize(80, 40);
             functionality(bc);
             conversationsBox.getChildren().add(bc);
 
