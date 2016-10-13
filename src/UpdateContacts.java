@@ -1,3 +1,4 @@
+import javax.swing.filechooser.FileSystemView;
 import java.io.*;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -12,7 +13,7 @@ import java.util.zip.InflaterInputStream;
  */
 public class UpdateContacts {
 
-
+    private static final String filename = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + "\\contacts.ser";
     public UpdateContacts() {
         ObjectOutputStream oos = null;
         ObjectInputStream ois = null;
@@ -35,13 +36,13 @@ public class UpdateContacts {
              * easily corrupt said file.
              */
             try {
-                oos = new AppendableObjectOutputStream(new FileOutputStream(new File("contacts.ser"), true));
+                oos = new AppendableObjectOutputStream(new FileOutputStream(new File(filename), true));
                 oos.flush();
-                ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
+                ois = new ObjectInputStream(new FileInputStream(new File(filename)));
             } catch (StreamCorruptedException | EOFException sce) {
-                oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser")));
+                oos = new ObjectOutputStream(new FileOutputStream(new File(filename)));
                 oos.flush();
-                ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
+                ois = new ObjectInputStream(new FileInputStream(new File(filename)));
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
@@ -63,7 +64,7 @@ public class UpdateContacts {
     public void addContact(final Contact c) { // Could I just store an arraylist of contacts inside the file?
         AppendableObjectOutputStream oos = null;
         try {
-            oos = new AppendableObjectOutputStream(new FileOutputStream(new File("contacts.ser"), true));
+            oos = new AppendableObjectOutputStream(new FileOutputStream(new File(filename), true));
             oos.flush();
             oos.writeObject(c);
             oos.flush();
@@ -99,7 +100,7 @@ public class UpdateContacts {
         getContacts(temp);
 
         try {
-            oos = new ObjectOutputStream(new FileOutputStream(new File("contacts.ser"))); // We want this to delete the contents of the file
+            oos = new ObjectOutputStream(new FileOutputStream(new File(filename))); // We want this to delete the contents of the file
             for (Contact con : temp) {
                 if (con.equals(c)) {
                     oos.writeObject(c);
@@ -126,7 +127,7 @@ public class UpdateContacts {
 
         ObjectInputStream ois = null;
         try {
-            ois = new ObjectInputStream(new FileInputStream(new File("contacts.ser")));
+            ois = new ObjectInputStream(new FileInputStream(new File(filename)));
 
             while (true) {
                 Object o = ois.readObject();

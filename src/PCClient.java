@@ -252,13 +252,16 @@ public class PCClient extends Application {
                 in.close();
                 out.close();
                 server.close();
+                System.out.println("closed");
             } catch (IOException e) {
                 e.printStackTrace();
+            } catch (Exception e) {
+                // Illigal state exception. TODO: research why this is happening in the future.
             }
         });
         try {
             new Thread(() -> {
-                startPCClient("localhost"); // Start the server once the GUI is set up.
+                startPCClient(""); // Start the server once the GUI is set up.
             }).start();
         } catch (Exception e) {
             // do nothing (for now);
