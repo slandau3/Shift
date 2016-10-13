@@ -193,7 +193,7 @@ public class PCClient extends Application {
             } catch (FileNotFoundException e) {
                 e.printStackTrace();  // Should not get here
             }
-
+            Toolkit.getDefaultToolkit().beep();
         });
     }
 
