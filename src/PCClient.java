@@ -1,4 +1,6 @@
 import edu.rit.cs.steven_landau.shiftmobile.Mobile;
+import edu.rit.cs.steven_landau.shiftmobile.RetrievedContact;
+import edu.rit.cs.steven_landau.shiftmobile.RetrievedContacts;
 import edu.rit.cs.steven_landau.shiftmobile.SendCard;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -153,7 +155,9 @@ public class PCClient extends Application {
                         handleOnReceive(curr);
                     }
                 }  // TODO: Brainstorm a few more possible objects
+                else if (obj instanceof RetrievedContacts) {
 
+                }
             } catch (Exception e) {
                 //e.printStackTrace();
                 throw new IOException("Server closed?");
@@ -204,7 +208,7 @@ public class PCClient extends Application {
         //Set up menu at top
         MenuBar mb = new MenuBar();
         Menu mFile = new Menu("File");
-        mb.getMenus().add(mFile);
+        mb.getMenus().add(mFile); //TODO: add functionality to start a conversation with a contact who is not yet in the contacts.ser file.
         //MenuItem newConversation = new MenuItem("Start New Conversation");
         //mFile.getItems().add(newConversation);
 
