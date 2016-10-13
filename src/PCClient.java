@@ -1,5 +1,4 @@
-import edu.rit.cs.steven_landau.shiftmobile.Mobile;
-import edu.rit.cs.steven_landau.shiftmobile.RetrievedContact;
+import edu.rit.cs.steven_landau.shiftmobile.ContactCard;
 import edu.rit.cs.steven_landau.shiftmobile.RetrievedContacts;
 import edu.rit.cs.steven_landau.shiftmobile.SendCard;
 import javafx.application.Application;
@@ -7,22 +6,32 @@ import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.Background;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+
 import java.awt.*;
-import java.io.*;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.Array;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 /**
  * Created by Steven Landau on 10/6/2016.
@@ -41,11 +50,13 @@ public class PCClient extends Application {
     private TextField inputBar;
     private TextArea messageDisplay;
     private VBox conversationsBox;
-    private ArrayList<Contact> conversations = new ArrayList<>();
+    private ArrayList<Contact> conversations;
     private Contact lookingAt;
     private Boolean start = true;
     private UpdateContacts uc = new UpdateContacts();
-
+    private ArrayList<ContactCard> contactCards;
+    private Scene primaryScene;
+    private Stage primaryStage;
     /**
      * The first non JavaFX class that gets called.
      * Starts the server and sends the initial message which tells the server who we are.
@@ -155,8 +166,13 @@ public class PCClient extends Application {
                         handleOnReceive(curr);
                     }
                 }  // TODO: Brainstorm a few more possible objects
-                else if (obj instanceof RetrievedContacts) {
-
+                else if (obj instanceof RetrievedContacts) {  // Should be the first thing we receive
+                    RetrievedContacts rc = (RetrievedContacts) obj;
+                    this.contactCards = rc;  // TODO: set up starting a new conversation
+                } else if (obj instanceof ConversationHolder){  // Keep an eye on this one
+                    conversations = ((ConversationHolder) obj).getContactHolder();
+                    Collections.reverse(conversations);  // Reverse them so they are put in the vbox in the correct order
+                    fillVbox();
                 }
             } catch (Exception e) {
                 //e.printStackTrace();
@@ -203,14 +219,16 @@ public class PCClient extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        this.primaryStage = primaryStage;
         primaryStage.setTitle("Shift Client");
         BorderPane bp = new BorderPane();
         //Set up menu at top
         MenuBar mb = new MenuBar();
         Menu mFile = new Menu("File");
         mb.getMenus().add(mFile); //TODO: add functionality to start a conversation with a contact who is not yet in the contacts.ser file.
-        //MenuItem newConversation = new MenuItem("Start New Conversation");
-        //mFile.getItems().add(newConversation);
+        MenuItem newConversation = new MenuItem("New Conversation");
+        newConversation.setOnAction(event1 -> newConversationStage());
+        mFile.getItems().add(newConversation);
 
         bp.setTop(mb);
 
@@ -242,14 +260,14 @@ public class PCClient extends Application {
         ScrollPane sp = new ScrollPane();
         conversationsBox = new VBox();
         conversationsBox.setMouseTransparent(true);  // Fixes a bug that results from the user clicking a button too fast on startup.
-        fillVbox();
+        //fillVbox();  // Do not fill vbox until we get the conversations from the server
         sp.setContent(conversationsBox);
         bp.setLeft(sp);
         
         
         // Open the GUI
-
-        primaryStage.setScene(new Scene(bp));
+        this.primaryScene = new Scene(bp);
+        primaryStage.setScene(this.primaryScene);
         primaryStage.show();
         primaryStage.setOnCloseRequest(event -> {
             try {
@@ -274,6 +292,76 @@ public class PCClient extends Application {
         }
     }
 
+    private void newConversationStage() {
+        Stage newChat = new Stage();
+        BorderPane bp = new BorderPane();
+        GridPane gp = new GridPane();
+        TextField tf = new TextField();
+        ArrayList<ContactCard> matchingContact = new ArrayList<>();
+        tf.setPromptText("Search by name");
+        tf.setOnKeyPressed(event -> {  // On any and all keys pressed
+            CharSequence userText = tf.getText();
+            for (ContactCard cc : contactCards) {  // TODO: optomize this
+                if (cc.getName().contains(userText)) {
+                    matchingContact.add(cc);
+                }
+            }
+            Collections.sort(matchingContact, new Comparator<ContactCard>() {  // Keep an eye on this
+                @Override
+                public int compare(ContactCard o1, ContactCard o2) {
+                    if (o1.getName().equals(o2.getName())) {
+                        return o1.getNumber().compareTo(o2.getNumber());
+                    } else {
+                        return o1.getName().compareTo(o2.getName());
+                    }
+                }
+            });
+            int row = 0;
+            for (int i = 0; i < matchingContact.size(); i++) {
+                ButtonContactCard bcc = new ButtonContactCard(matchingContact.get(i));
+                final ContactCard cc = bcc.c;
+                bcc.setOnAction(event1 -> {
+                    Contact c = new Contact(cc.getName(), cc.getNumber(), null);
+                    if (conversations.contains(c)) {
+                        this.primaryStage.setScene(this.primaryScene);
+                        Contact t = conversations.get(conversations.indexOf(c));
+                        conversations.remove(t);
+                        conversations.add(t);
+                        try {
+                            fillVbox();
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        this.primaryStage.setScene(this.primaryScene);
+                        conversations.add(c);
+                        try {
+                            fillVbox();
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                gp.add(bcc, i % 6, row);
+                if (i % 6 == 5) { // If we already have five buttons
+                    row++;
+                }
+            }
+            matchingContact.clear();
+        });
+        bp.setTop(tf);
+        bp.setCenter(gp);
+
+        HBox bottomButtons = new HBox();
+        Button back = new Button("Back");
+        back.setOnAction(event -> {
+            this.primaryStage.setScene(this.primaryScene);
+            lookingAt = null;
+        });
+        bp.setBottom(bottomButtons);
+
+    }
+
     /**
      * Fills the left side of the screen with your contacts.
      * Will eventually request the updated contact info from the server.
@@ -282,11 +370,11 @@ public class PCClient extends Application {
      *
      */
     private void fillVbox() throws FileNotFoundException {
-        if (start) {  // Get the contacts from the file only once the program starts
+        /*if (start) {  // Get the contacts from the file only once the program starts
             uc.getContacts(conversations);
 
             start = false;
-        }
+        }*/
 
         conversationsBox.getChildren().clear();
         for (int i = conversations.size()-1; i > -1; i--) { // Add contacts gathered from file to the vbox

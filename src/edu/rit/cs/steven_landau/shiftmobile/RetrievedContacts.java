@@ -1,6 +1,7 @@
 package edu.rit.cs.steven_landau.shiftmobile;
 
 import java.io.Serializable;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 /**
@@ -13,15 +14,22 @@ import java.util.ArrayList;
  * with anyone. The phone will parse it's contacts and send this class
  * which contains an arraylist full of Contact cards.
  */
-public class RetrievedContacts implements Serializable {
+public class RetrievedContacts extends ArrayList<ContactCard> implements Serializable {
 
-    public static ArrayList<ContactCard> cc = new ArrayList<>();
+    private static ArrayList<ContactCard> cc;
 
-    public RetrievedContacts(ContactCard cc) {
-        this.cc.add(cc);
+    public RetrievedContacts(ContactCard cCard) {
+        cc = new ArrayList<>();
     }
 
     public void reset() {
-        this.cc.clear();
+        cc.clear();
+    }
+
+    public void addContactCard(ContactCard cCard) {
+        cc.add(cCard);
+    }
+    public ArrayList<ContactCard> getCC() {
+        return cc;
     }
 }
