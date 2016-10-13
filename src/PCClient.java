@@ -245,7 +245,7 @@ public class PCClient extends Application {
         
         // Open the GUI
 
-        primaryStage.setScene(new Scene(bp, 500, 500));
+        primaryStage.setScene(new Scene(bp));
         primaryStage.show();
         primaryStage.setOnCloseRequest(event -> {
             try {
@@ -287,7 +287,7 @@ public class PCClient extends Application {
         conversationsBox.getChildren().clear();
         for (int i = conversations.size()-1; i > -1; i--) { // Add contacts gathered from file to the vbox
             ButtonContact bc = new ButtonContact(conversations.get(i));
-            bc.setPrefSize(80, 40);
+            bc.setPrefSize(100, 40);
             functionality(bc);
             conversationsBox.getChildren().add(bc);
 
@@ -319,6 +319,8 @@ public class PCClient extends Application {
             lookingAt = bc.getContact(); // now we know we are looking at this contact
             bc.setStyle(null);
         });
+        bc.getStylesheets().add("button.css");
+        bc.setWrapText(true);
     }
 
 
