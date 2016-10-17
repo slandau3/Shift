@@ -53,7 +53,7 @@ public class PCClient extends Application {
     private ArrayList<Contact> conversations;
     private Contact lookingAt;
     private Boolean start = true;
-    private UpdateContacts uc = new UpdateContacts();
+    //private UpdateContacts uc = new UpdateContacts();
     private ArrayList<ContactCard> contactCards;
     private Scene primaryScene;
     private Stage primaryStage;
@@ -110,7 +110,7 @@ public class PCClient extends Application {
                     String s = (String) o;
 
                     out.writeObject(new SendCard(s, lookingAt.getPhoneNumber(), lookingAt.getName())); // edu.rit.cs.steven_landau.shiftmobile.SendCard containing contact info and message
-                    uc.updateData(lookingAt);
+                    //uc.updateData(lookingAt);
                 }
                 out.flush();
             } catch (IOException e) {
@@ -138,29 +138,29 @@ public class PCClient extends Application {
                     for (int i = 0; i < conversations.size(); i++) {
                         if (sc.getNumber().equals(conversations.get(i).getPhoneNumber())) {
                             conversations.get(i).addMessage(sc.getMsg());
-                            uc.updateData(conversations.get(i));
+                           // uc.updateData(conversations.get(i));
                             curr = conversations.get(i);   // We found the contact in our list of contacts
                             System.out.println("found");
                             break;
                         }
                     }
                     if (curr != null) {   // If we found them do this.
-                        final Contact finalCurr = curr;     // Make final for sake of lambda
+                        /*final Contact finalCurr = curr;     // Make final for sake of lambda
                         new Thread(() -> { // IO is slow. No need to waste time on this thread, reading and writing to a file.
                             uc.updateData(finalCurr);
                             System.out.println("updating contact");
-                        }).start();
-                        handleOnReceive(finalCurr);
+                        }).start();*/
+                        handleOnReceive(curr);
 
                     } else {    // Do not currently have this contact
                         ArrayList<String> temp = new ArrayList<String>();
                         temp.add(sc.getMsg());
                         curr = new Contact(sc.getName(), sc.getNumber(), temp);
-                        final Contact finalCurr1 = curr; // For sake of lambda
+                        /*final Contact finalCurr1 = curr; // For sake of lambda
                         new Thread(() -> {  // IO is slow. No need to waste time on this thread, writing to a file
                             uc.addContact(finalCurr1);
                             System.out.println("adding contact");
-                        }).start();
+                        }).start();*/
 
                         conversations.add(curr); // only adding it here so I don't have to error check when I remove it next.
                         handleOnReceive(curr);
@@ -292,11 +292,16 @@ public class PCClient extends Application {
         }
     }
 
+    /**
+     * This method shows a new stage where the user can
+     * begin a new conversation without having to wait for
+     * the other party to initiate it.
+     */
     private void newConversationStage() {
         Stage newChat = new Stage();
         BorderPane bp = new BorderPane();
         GridPane gp = new GridPane();
-        TextField tf = new TextField();
+        TextField tf = new TextField();  // Where the user will type the name of the person they want to talk to
         ArrayList<ContactCard> matchingContact = new ArrayList<>();
         tf.setPromptText("Search by name");
         tf.setOnKeyPressed(event -> {  // On any and all keys pressed
@@ -357,9 +362,12 @@ public class PCClient extends Application {
         back.setOnAction(event -> {
             this.primaryStage.setScene(this.primaryScene);
             lookingAt = null;
+            matchingContact.clear();
+
         });
         bp.setBottom(bottomButtons);
-
+        newChat.setScene(new Scene(bp));
+        newChat.show();
     }
 
     /**
@@ -370,11 +378,11 @@ public class PCClient extends Application {
      *
      */
     private void fillVbox() throws FileNotFoundException {
-        /*if (start) {  // Get the contacts from the file only once the program starts
-            uc.getContacts(conversations);
+        if (start) {  // Get the contacts from the file only once the program starts
 
             start = false;
-        }*/
+            return;
+        }
 
         conversationsBox.getChildren().clear();
         for (int i = conversations.size()-1; i > -1; i--) { // Add contacts gathered from file to the vbox
