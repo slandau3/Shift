@@ -57,6 +57,7 @@ public class PCClient extends Application {
     private ArrayList<ContactCard> contactCards = new ArrayList<>();
     private Scene primaryScene;
     private Stage primaryStage;
+    private static final String IP = "162.243.186.54";
     /**
      * The first non JavaFX class that gets called.
      * Starts the server and sends the initial message which tells the server who we are.
@@ -111,6 +112,8 @@ public class PCClient extends Application {
 
                     out.writeObject(new SendCard(s, lookingAt.getPhoneNumber(), lookingAt.getName())); // edu.rit.cs.steven_landau.shiftmobile.SendCard containing contact info and message
                     //uc.updateData(lookingAt);
+                } else {
+                    out.writeObject(o); // I know this can easily be made into one statement. I'll do it later. Maybe.
                 }
                 out.flush();
             } catch (IOException e) {
@@ -241,7 +244,15 @@ public class PCClient extends Application {
         mb.getMenus().add(mFile); //TODO: add functionality to start a conversation with a contact who is not yet in the contacts.ser file.
         MenuItem newConversation = new MenuItem("New Conversation");
         newConversation.setOnAction(event1 -> newConversationStage());
+        MenuItem clearAll = new MenuItem("Clear All");
+        clearAll.setOnAction(e -> {
+            sendMessage(new ClearRequest());
+            lookingAt = null;
+            conversations.clear();
+            conversationsBox.getChildren().clear();
+        });
         mFile.getItems().add(newConversation);
+        mFile.getItems().add(clearAll);
 
         bp.setTop(mb);
 
@@ -296,7 +307,7 @@ public class PCClient extends Application {
         });
         try {
             new Thread(() -> {
-                startPCClient(""); // Start the server once the GUI is set up.
+                startPCClient(IP); // Start the server once the GUI is set up.
             }).start();
         } catch (Exception e) {
             // do nothing (for now);
