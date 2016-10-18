@@ -18,7 +18,7 @@ public class RetrievedContacts extends ArrayList<ContactCard> implements Seriali
 
     private static ArrayList<ContactCard> cc;
 
-    public RetrievedContacts(ContactCard cCard) {
+    public RetrievedContacts() {
         cc = new ArrayList<>();
     }
 
