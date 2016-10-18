@@ -19,6 +19,8 @@ public class Contact implements Serializable {
         this.name = name;
         if (messages != null) {
             this.messages = messages;
+        } else {
+            this.messages = new ArrayList<>();
         }
         this.phoneNumber = phoneNumber;
     }

@@ -50,11 +50,11 @@ public class PCClient extends Application {
     private TextField inputBar;
     private TextArea messageDisplay;
     private VBox conversationsBox;
-    private ArrayList<Contact> conversations;
+    private ArrayList<Contact> conversations = new ArrayList<>();
     private Contact lookingAt;
     private Boolean start = true;
     //private UpdateContacts uc = new UpdateContacts();
-    private ArrayList<ContactCard> contactCards;
+    private ArrayList<ContactCard> contactCards = new ArrayList<>();
     private Scene primaryScene;
     private Stage primaryStage;
     /**
@@ -81,7 +81,7 @@ public class PCClient extends Application {
         } catch (UnknownHostException e) {
             System.out.println("Cannot connect to ip");
         } catch (Exception e) {  // TODO: modify this catch. may want it to just error out
-            //e.printStackTrace(); // IO exception will show up here
+            e.printStackTrace(); // IO exception will show up here
         } finally {
             try {
                 out.close();
@@ -131,6 +131,7 @@ public class PCClient extends Application {
                 Thread.sleep(100);
 
                 Object obj = in.readObject();
+                System.out.println("something received");
                 if (obj instanceof SendCard) {
                     System.out.println("received");
                     SendCard sc = (SendCard) obj;
@@ -164,18 +165,34 @@ public class PCClient extends Application {
 
                         conversations.add(curr); // only adding it here so I don't have to error check when I remove it next.
                         handleOnReceive(curr);
+                        System.out.println("sendcard received");
                     }
                 }  // TODO: Brainstorm a few more possible objects
                 else if (obj instanceof RetrievedContacts) {  // Should be the first thing we receive
+                    System.out.println("retrievedContactacts received from server");
                     RetrievedContacts rc = (RetrievedContacts) obj;
-                    this.contactCards = rc;  // TODO: set up starting a new conversation
+                    if (rc.cc != null) {
+                        this.contactCards = rc.cc;  // TODO: set up starting a new conversation
+                        //System.out.println(this.contactCards.size());
+                        System.out.println(rc.cc);
+                    }
                 } else if (obj instanceof ConversationHolder){  // Keep an eye on this one
-                    conversations = ((ConversationHolder) obj).getContactHolder();
-                    Collections.reverse(conversations);  // Reverse them so they are put in the vbox in the correct order
-                    fillVbox();
+                    System.out.println("got conversation holder");
+                    ConversationHolder ch = (ConversationHolder) obj;
+                    if (ch.getContactHolder() != null) {
+                        System.out.println(ch.getContactHolder());
+                        conversations = ch.getContactHolder();
+                        if (conversations != null) {
+                            Collections.reverse(conversations);  // Reverse them so they are put in the vbox in the correct order
+                            Platform.runLater(() -> {
+                                fillVbox();
+                                System.out.println("fillbox complete");
+                            });
+                        }
+                    }
                 }
             } catch (Exception e) {
-                //e.printStackTrace();
+                e.printStackTrace();
                 throw new IOException("Server closed?");
             }
         } while (true);
@@ -193,27 +210,23 @@ public class PCClient extends Application {
 
         // Re-arrange the buttons
         Platform.runLater(() -> {
-            try {
-                fillVbox();
+            fillVbox();
 
-                    for (Node n : conversationsBox.getChildren()) {
-                        if (n instanceof ButtonContact) {
-                            ButtonContact bc = (ButtonContact) n;
-                            if (bc.getContact().equals(c)) {
-                                if (c.equals(lookingAt)) {
-                                    bc.fire(); // Automatically update the screen
-                                } // Automatically update the screen if we are already looking at the button we just received a message from
-                                else {
-                                    bc.setStyle("-fx-background-color: ORANGE");
-                                }
+                for (Node n : conversationsBox.getChildren()) {
+                    if (n instanceof ButtonContact) {
+                        ButtonContact bc = (ButtonContact) n;
+                        if (bc.getContact().equals(c)) {
+                            if (c.equals(lookingAt)) {
+                                bc.fire(); // Automatically update the screen
+                            } // Automatically update the screen if we are already looking at the button we just received a message from
+                            else {
+                                bc.setStyle("-fx-background-color: ORANGE");
                             }
                         }
                     }
-                 // Automatically update the screen if we are already looking at the button we just received a message from
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();  // Should not get here
-            }
-            Toolkit.getDefaultToolkit().beep();
+                }
+             // Automatically update the screen if we are already looking at the button we just received a message from
+        Toolkit.getDefaultToolkit().beep();
         });
     }
 
@@ -244,9 +257,9 @@ public class PCClient extends Application {
         inputBar.setOnKeyPressed(event -> {
             if (event.getCode().equals(KeyCode.ENTER)) {
                 if (!inputBar.getText().trim().equals("")) { // Make sure the user actually sends a message and not a space
-                    lookingAt.addMessage("--CLIENT--: " + inputBar.getText());  // Save the messages we sent too because we will need to recall it when we change people.
+                    lookingAt.addMessage("--Client--: " + inputBar.getText());  // Save the messages we sent too because we will need to recall it when we change people.
                     sendMessage(inputBar.getText());
-                    messageDisplay.appendText("--CLIENT--: " + inputBar.getText() + "\n");
+                    messageDisplay.appendText("--Client--: " + inputBar.getText() + "\n");
                     inputBar.clear();
                 }
             }
@@ -298,61 +311,65 @@ public class PCClient extends Application {
      * the other party to initiate it.
      */
     private void newConversationStage() {
-        Stage newChat = new Stage();
+        System.out.println("in new conversation stage");
         BorderPane bp = new BorderPane();
         GridPane gp = new GridPane();
         TextField tf = new TextField();  // Where the user will type the name of the person they want to talk to
         ArrayList<ContactCard> matchingContact = new ArrayList<>();
         tf.setPromptText("Search by name");
-        tf.setOnKeyPressed(event -> {  // On any and all keys pressed
+        tf.setOnKeyReleased(event -> {  // On any and all keys pressed
             CharSequence userText = tf.getText();
-            for (ContactCard cc : contactCards) {  // TODO: optomize this
-                if (cc.getName().contains(userText)) {
-                    matchingContact.add(cc);
-                }
-            }
-            Collections.sort(matchingContact, new Comparator<ContactCard>() {  // Keep an eye on this
-                @Override
-                public int compare(ContactCard o1, ContactCard o2) {
-                    if (o1.getName().equals(o2.getName())) {
-                        return o1.getNumber().compareTo(o2.getNumber());
-                    } else {
-                        return o1.getName().compareTo(o2.getName());
-                    }
-                }
-            });
-            int row = 0;
-            for (int i = 0; i < matchingContact.size(); i++) {
-                ButtonContactCard bcc = new ButtonContactCard(matchingContact.get(i));
-                final ContactCard cc = bcc.c;
-                bcc.setOnAction(event1 -> {
-                    Contact c = new Contact(cc.getName(), cc.getNumber(), null);
-                    if (conversations.contains(c)) {
-                        this.primaryStage.setScene(this.primaryScene);
-                        Contact t = conversations.get(conversations.indexOf(c));
-                        conversations.remove(t);
-                        conversations.add(t);
-                        try {
-                            fillVbox();
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
-                        }
-                    } else {
-                        this.primaryStage.setScene(this.primaryScene);
-                        conversations.add(c);
-                        try {
-                            fillVbox();
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
+            System.out.println(userText);
+            gp.getChildren().clear();
+            if (userText.toString().trim().length() != 0) {
+                try {
+                    for (ContactCard cc : contactCards) {  // TODO: optomize this
+                        if (cc.getName().toLowerCase().contains(((String) userText).toLowerCase())) {
+                            matchingContact.add(cc);
                         }
                     }
-                });
-                gp.add(bcc, i % 6, row);
-                if (i % 6 == 5) { // If we already have five buttons
-                    row++;
+                    Collections.sort(matchingContact, new Comparator<ContactCard>() {  // Keep an eye on this
+                        @Override
+                        public int compare(ContactCard o1, ContactCard o2) {
+                            if (o1.getName().equals(o2.getName())) {
+                                return o1.getNumber().compareTo(o2.getNumber());
+                            } else {
+                                return o1.getName().compareTo(o2.getName());
+                            }
+                        }
+                    });
+                    System.out.println(matchingContact);
+                    int row = 0;
+                    gp.getChildren().clear(); // Remove everything that could have possibly been left over.
+                    for (int i = 0; i < matchingContact.size(); i++) {
+                        ButtonContactCard bcc = new ButtonContactCard(matchingContact.get(i));
+                        final ContactCard cc = bcc.c;
+                        bcc.setOnAction(event1 -> {
+                            Contact c = new Contact(cc.getName(), cc.getNumber(), null);
+
+                            if (conversations != null && conversations.contains(c)) {
+                                this.primaryStage.setScene(this.primaryScene);
+                                Contact t = conversations.get(conversations.indexOf(c));
+                                conversations.remove(t);
+                                conversations.add(t);
+                                fillVbox();
+                            } else {
+                                this.primaryStage.setScene(this.primaryScene);
+                                conversations.add(c);
+                                fillVbox();
+                            }
+                        });
+                        gp.add(bcc, i % 6, row);
+                        if (i % 6 == 5) { // If we already have five buttons
+                            row++;
+                        }
+                    }
+                    matchingContact.clear();
+                } catch (NullPointerException npe) {
+                    //do nothing for now
+                    System.out.println("problem");
                 }
             }
-            matchingContact.clear();
         });
         bp.setTop(tf);
         bp.setCenter(gp);
@@ -365,9 +382,10 @@ public class PCClient extends Application {
             matchingContact.clear();
 
         });
+        bottomButtons.getChildren().add(back);
         bp.setBottom(bottomButtons);
-        newChat.setScene(new Scene(bp));
-        newChat.show();
+        this.primaryStage.setScene(new Scene(bp, this.primaryScene.getWidth(), this.primaryScene.getHeight()));
+        //newChat.show();
     }
 
     /**
@@ -377,12 +395,12 @@ public class PCClient extends Application {
      *
      *
      */
-    private void fillVbox() throws FileNotFoundException {
-        if (start) {  // Get the contacts from the file only once the program starts
+    private void fillVbox() {
+        /*if (start) {  // Get the contacts from the file only once the program starts
 
             start = false;
             return;
-        }
+        }*/
 
         conversationsBox.getChildren().clear();
         for (int i = conversations.size()-1; i > -1; i--) { // Add contacts gathered from file to the vbox
@@ -410,9 +428,11 @@ public class PCClient extends Application {
             inputBar.setEditable(true);
             messageDisplay.clear();
             for (int i = 0; i < bc.getContact().getMessages().size(); i++) {
-                if (bc.getContact().getMessages().get(i).startsWith("--CLIENT--:")) {
-                    messageDisplay.appendText(bc.getContact().getMessages().get(i) + "\n");
+                if (bc.getContact().getMessages().get(i).startsWith("--Client--:")) {
+                    System.out.println(bc.getContact().getMessages().get(i));
+                    messageDisplay.appendText("" + bc.getContact().getMessages().get(i) + "\n");
                 } else {
+                    System.out.println(bc.getContact().getMessages().get(i));
                     messageDisplay.appendText("--" + bc.getContact().getName() + "--: " + bc.getContact().getMessages().get(i) + "\n");
                 }
             }
