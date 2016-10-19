@@ -18,6 +18,9 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.*;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 
 
@@ -57,7 +60,9 @@ public class PCClient extends Application {
     private ArrayList<ContactCard> contactCards = new ArrayList<>();
     private Scene primaryScene;
     private Stage primaryStage;
-    private static final String IP = "162.243.186.54";
+    private VBox connectionStatus;
+    private BorderPane bp;
+    private static final String IP = "";
     /**
      * The first non JavaFX class that gets called.
      * Starts the server and sends the initial message which tells the server who we are.
@@ -193,6 +198,21 @@ public class PCClient extends Application {
                             });
                         }
                     }
+                } else if (obj instanceof ConnectedToMobile) {  //TODO: set the indicator so that it takes up the entire right side of the screen even when scaled
+                    boolean isConnected = ((ConnectedToMobile) obj).isConnected();
+                    Platform.runLater(() -> {
+                        Color color;
+                        if (isConnected) {
+                            color = Color.GREEN;
+                        } else {
+                            color = Color.RED;
+                        }
+                        connectionStatus.getChildren().clear();
+                        Rectangle r = new Rectangle(10, bp.getHeight()-inputBar.getHeight()*2);
+                        r.setFill(color);
+                        connectionStatus.getChildren().add(r);
+
+                    });
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -237,11 +257,12 @@ public class PCClient extends Application {
     public void start(Stage primaryStage) throws Exception {
         this.primaryStage = primaryStage;
         primaryStage.setTitle("Shift Client");
-        BorderPane bp = new BorderPane();
+        bp = new BorderPane();
+        bp.setScaleShape(true);
         //Set up menu at top
         MenuBar mb = new MenuBar();
         Menu mFile = new Menu("File");
-        mb.getMenus().add(mFile); //TODO: add functionality to start a conversation with a contact who is not yet in the contacts.ser file.
+        mb.getMenus().add(mFile);
         MenuItem newConversation = new MenuItem("New Conversation");
         newConversation.setOnAction(event1 -> newConversationStage());
         MenuItem clearAll = new MenuItem("Clear All");
@@ -278,6 +299,9 @@ public class PCClient extends Application {
 
         bp.setBottom(inputBar);
 
+        connectionStatus = new VBox();
+        bp.setRight(connectionStatus);
+        System.out.println(bp.getRight());
         
         // Set up the conversationsBox
 
@@ -287,8 +311,9 @@ public class PCClient extends Application {
         //fillVbox();  // Do not fill vbox until we get the conversations from the server
         sp.setContent(conversationsBox);
         bp.setLeft(sp);
-        
-        
+
+        // Set up the connectionStatus symbol
+
         // Open the GUI
         this.primaryScene = new Scene(bp);
         primaryStage.setScene(this.primaryScene);
@@ -314,6 +339,7 @@ public class PCClient extends Application {
             System.out.println("connection closed unexpectedly");  // TODO: Create an error message
             primaryStage.close();
         }
+
     }
 
     /**
