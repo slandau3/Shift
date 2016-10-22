@@ -3,6 +3,7 @@ import edu.rit.cs.steven_landau.shiftmobile.RetrievedContacts;
 import edu.rit.cs.steven_landau.shiftmobile.SendCard;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -14,10 +15,8 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.input.MouseButton;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.*;
 import javafx.scene.shape.Rectangle;
@@ -25,10 +24,7 @@ import javafx.stage.Stage;
 
 
 import java.awt.*;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.lang.reflect.Array;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -43,26 +39,72 @@ import java.util.Comparator;
  * This class handles setting up the GUI as well as receiving/evaluating output from the server.
  * This class/application does not follow any particular design pattern.
  * That said, it has similarities to MVC.
- * Usage - coming soon //TODO
  */
 public class PCClient extends Application {
 
     private Socket server;
     private ObjectInputStream in;
     private ObjectOutputStream out;
+
+    /**
+     * The area where the user will type their message.
+     * The user will not be able to click on the text
+     * field until a contact is selected. The user can
+     * send a message by hitting the enter key.
+     */
     private TextField inputBar;
+
+    /**
+     * The text area that displays the message. The text area
+     * can only display askii characters so anything like emoji's
+     * will show be represented ... strangely... Directly linked to
+     * buttonContacts and is updated any time a buttonContact is pressed.
+     * When a message is received (which happens to be for the contact
+     * you are looking at) the button will press itself, thus updating
+     * the screen.
+     */
     private TextArea messageDisplay;
+
+    /**
+     * THe VBox that holds all the conversations.
+     * AKA the buttonContacts. Frequently get's overwritten
+     * and rearranged in fillVBox.
+     */
     private VBox conversationsBox;
+
     private ArrayList<Contact> conversations = new ArrayList<>();
+
+    /**
+     * The contact we are currently looking at.
+     * This allows us to determine if we are looking at someone,
+     * what that persons phone number is and what that persons
+     * name is. All of which is necesarry to create a SendCard.
+     */
     private Contact lookingAt;
-    private Boolean start = true;
-    //private UpdateContacts uc = new UpdateContacts();
+
+    /**
+     * Essentially the contact info for every person in the users phone.
+     * The user can choose to start a new conversation in which the names
+     * from the contact cards will be searched. When/if a name is selected
+     * a new contact/buttonContact will be created for said person which will
+     * allow the user to communicate with the chosen person.
+     */
     private ArrayList<ContactCard> contactCards = new ArrayList<>();
     private Scene primaryScene;
     private Stage primaryStage;
     private VBox connectionStatus;
     private BorderPane bp;
+
+    /**
+     * The ip of the server you wish to connect to.
+     */
     private static final String IP = "";
+
+    /**
+     * The port number of the server you wish to connect to.
+     */
+    private static final int PORT = 8012;
+
     /**
      * The first non JavaFX class that gets called.
      * Starts the server and sends the initial message which tells the server who we are.
@@ -71,7 +113,7 @@ public class PCClient extends Application {
      */
     public void startPCClient(String ip) {
         try {
-            server = new Socket(ip, 8012);
+            server = new Socket(ip, PORT);
 
             out = new ObjectOutputStream(server.getOutputStream());
             out.flush();
@@ -116,9 +158,11 @@ public class PCClient extends Application {
                     String s = (String) o;
 
                     out.writeObject(new SendCard(s, lookingAt.getPhoneNumber(), lookingAt.getName())); // edu.rit.cs.steven_landau.shiftmobile.SendCard containing contact info and message
+                    System.out.println("sent a sendcard");
                     //uc.updateData(lookingAt);
                 } else {
                     out.writeObject(o); // I know this can easily be made into one statement. I'll do it later. Maybe.
+                    System.out.println("sent a ... something else");
                 }
                 out.flush();
             } catch (IOException e) {
@@ -127,6 +171,7 @@ public class PCClient extends Application {
         });
     }
 
+
     /**
      * Keeps the client checking for the server's response.
      * Once a response is received, the messageDisplay will be updated.
@@ -134,12 +179,14 @@ public class PCClient extends Application {
      * If a Contact object is received then we know that we just received a text message.
      */
     private void onReceiveFromServer() throws IOException {  // Thought this name fit better.
-        do {
+        while(true) {
             try {
                 Thread.sleep(100);
-
+                //if (in.available() > 0) {
                 Object obj = in.readObject();
-                System.out.println("something received");
+                System.out.println(obj.getClass());
+
+                //}
                 if (obj instanceof SendCard) {
                     System.out.println("received");
                     SendCard sc = (SendCard) obj;
@@ -147,7 +194,7 @@ public class PCClient extends Application {
                     for (int i = 0; i < conversations.size(); i++) {
                         if (sc.getNumber().equals(conversations.get(i).getPhoneNumber())) {
                             conversations.get(i).addMessage(sc.getMsg());
-                           // uc.updateData(conversations.get(i));
+                            // uc.updateData(conversations.get(i));
                             curr = conversations.get(i);   // We found the contact in our list of contacts
                             System.out.println("found");
                             break;
@@ -180,15 +227,15 @@ public class PCClient extends Application {
                     System.out.println("retrievedContactacts received from server");
                     RetrievedContacts rc = (RetrievedContacts) obj;
                     if (rc.cc != null) {
-                        this.contactCards = rc.cc;  // TODO: set up starting a new conversation
+                        this.contactCards = rc.cc;
                         //System.out.println(this.contactCards.size());
-                        System.out.println(rc.cc);
+                        //System.out.println(rc.cc);
                     }
-                } else if (obj instanceof ConversationHolder){  // Keep an eye on this one
+                } else if (obj instanceof ConversationHolder) {  // Keep an eye on this one
                     System.out.println("got conversation holder");
                     ConversationHolder ch = (ConversationHolder) obj;
                     if (ch.getContactHolder() != null) {
-                        System.out.println(ch.getContactHolder());
+                        //System.out.println(ch.getContactHolder());
                         conversations = ch.getContactHolder();
                         if (conversations != null) {
                             Collections.reverse(conversations);  // Reverse them so they are put in the vbox in the correct order
@@ -203,22 +250,24 @@ public class PCClient extends Application {
                     Platform.runLater(() -> {
                         Color color;
                         if (isConnected) {
-                            color = Color.GREEN;
+                            connectionStatus.setStyle("-fx-background-color: green");
                         } else {
-                            color = Color.RED;
+                            connectionStatus.setStyle("-fx-background-color: red");
                         }
-                        connectionStatus.getChildren().clear();
-                        Rectangle r = new Rectangle(10, bp.getHeight()-inputBar.getHeight()*2);
-                        r.setFill(color);
-                        connectionStatus.getChildren().add(r);
-
                     });
                 }
+                else {
+                    if (obj != null) {
+                        System.out.println("Could not figure out what it was!");
+                    }
+                };
+            } catch (EOFException eofe) {
+                //do nothing.
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new IOException("Server closed?");
             }
-        } while (true);
+        }
     }
 
     /**]
@@ -253,18 +302,25 @@ public class PCClient extends Application {
         });
     }
 
+
     @Override
     public void start(Stage primaryStage) throws Exception {
         this.primaryStage = primaryStage;
         primaryStage.setTitle("Shift Client");
+
         bp = new BorderPane();
         bp.setScaleShape(true);
+
         //Set up menu at top
         MenuBar mb = new MenuBar();
         Menu mFile = new Menu("File");
         mb.getMenus().add(mFile);
+
+        // Set up the new conversation menu item
         MenuItem newConversation = new MenuItem("New Conversation");
         newConversation.setOnAction(event1 -> newConversationStage());
+
+        // Set up the clear all menu item
         MenuItem clearAll = new MenuItem("Clear All");
         clearAll.setOnAction(e -> {
             sendMessage(new ClearRequest());
@@ -272,8 +328,21 @@ public class PCClient extends Application {
             conversations.clear();
             conversationsBox.getChildren().clear();
         });
-        mFile.getItems().add(newConversation);
-        mFile.getItems().add(clearAll);
+        // Set up the options menu item
+        MenuItem options = new MenuItem("Options & Settings");
+        options.setOnAction(event -> optionsScene());  //TODO: Make an options menu.
+
+        //Retry connection
+        MenuItem retry = new MenuItem("Reconnect");
+        retry.setOnAction(event -> {
+            new Thread(() -> {
+                startPCClient(IP);
+            }).start();
+        });
+
+        mFile.getItems().addAll(newConversation, clearAll, options, retry);
+
+
 
         bp.setTop(mb);
 
@@ -300,8 +369,9 @@ public class PCClient extends Application {
         bp.setBottom(inputBar);
 
         connectionStatus = new VBox();
+        connectionStatus.setStyle("-fx-background-color: red");
         bp.setRight(connectionStatus);
-        System.out.println(bp.getRight());
+        //System.out.println(bp.getRight());
         
         // Set up the conversationsBox
 
@@ -318,6 +388,7 @@ public class PCClient extends Application {
         this.primaryScene = new Scene(bp);
         primaryStage.setScene(this.primaryScene);
         primaryStage.show();
+        connectionStatus.setPrefWidth(primaryScene.getWidth()*.015);
         primaryStage.setOnCloseRequest(event -> {
             try {
                 in.close();
@@ -345,7 +416,21 @@ public class PCClient extends Application {
     /**
      * This method shows a new stage where the user can
      * begin a new conversation without having to wait for
-     * the other party to initiate it.
+     * the other party to initiate it. The user can select
+     * the "new conversation" MenuItem from the menuBar
+     * and begin searching for contacts on their phone.
+     * Every time they type a letter, the action event handler
+     * will determine what contacts have said letters
+     * in their name. The order of those letters matter.
+     * Perhaps another way to say this would be that
+     * the action event handler determines if any of
+     * your contacts names contain a substring equal
+     * to that of what you typed. For every letter typed
+     * the screen will update and display new buttons
+     * of different contacts. When a button is clicked
+     * the user will be taken back to the primaryScene
+     * and will be able to begin chatting with the
+     * chosen person.
      */
     private void newConversationStage() {
         System.out.println("in new conversation stage");
@@ -356,7 +441,7 @@ public class PCClient extends Application {
         tf.setPromptText("Search by name");
         tf.setOnKeyReleased(event -> {  // On any and all keys pressed
             CharSequence userText = tf.getText();
-            System.out.println(userText);
+            //System.out.println(userText);
             gp.getChildren().clear();
             if (userText.toString().trim().length() != 0) {
                 try {
@@ -375,7 +460,7 @@ public class PCClient extends Application {
                             }
                         }
                     });
-                    System.out.println(matchingContact);
+                    //System.out.println(matchingContact);
                     int row = 0;
                     gp.getChildren().clear(); // Remove everything that could have possibly been left over.
                     for (int i = 0; i < matchingContact.size(); i++) {
@@ -425,12 +510,24 @@ public class PCClient extends Application {
         //newChat.show();
     }
 
+
+    public void optionsScene() { //TODO
+        AnchorPane ap = new AnchorPane();
+        BorderPane bp = new BorderPane();
+        ScrollPane sp = new ScrollPane();
+        ComboBox fonts = new ComboBox();
+        fonts.getItems().addAll("Times New Roman", "Arial", "Comic Sans MS");
+        fonts.setOnAction(event -> {
+        });
+
+
+
+    }
     /**
-     * Fills the left side of the screen with your contacts.
-     * Will eventually request the updated contact info from the server.
-     * Should store said contact info to a file.
-     *
-     *
+     * Fills the left side of the screen with your active conversations.
+     * Also responsible for updating/organizing the contacts. This function
+     * is typically called after a sendCard is received from the server
+     * indicating that the list/order of buttons must be rearranged.
      */
     private void fillVbox() {
         /*if (start) {  // Get the contacts from the file only once the program starts
@@ -456,28 +553,63 @@ public class PCClient extends Application {
 
     }
 
+
     /**
      * Add an action listener to the ButtonContact
+     * The action listener is responsible for displaying
+     * the text on the screen. Every time the button is clicked
+     * the display is wiped and rewritten to fit the conversation
+     * the user was having with said person. This method also assigns
+     * right click functionality to the button. At the moment right clicking
+     * a button contact will only allow you to remove/delete your conversation
+     * with them.
      */
     private void functionality(ButtonContact bc) { // Another way to do this would be to store the TextArea in the Contacts class. I might switch to that later.
-        bc.setOnAction(event -> {  //TODO: add functionality to save unsent message as draft
+        bc.setOnMouseClicked(event -> {  //TODO: add functionality to save unsent message as draft
+            //bc.fire();  // I don't remember why I had this here.
+            if (event.getButton().equals(MouseButton.SECONDARY))
             inputBar.clear();
             inputBar.setEditable(true);
             messageDisplay.clear();
             for (int i = 0; i < bc.getContact().getMessages().size(); i++) {
                 if (bc.getContact().getMessages().get(i).startsWith("--Client--:")) {
-                    System.out.println(bc.getContact().getMessages().get(i));
                     messageDisplay.appendText("" + bc.getContact().getMessages().get(i) + "\n");
+
                 } else {
-                    System.out.println(bc.getContact().getMessages().get(i));
                     messageDisplay.appendText("--" + bc.getContact().getName() + "--: " + bc.getContact().getMessages().get(i) + "\n");
+
                 }
             }
             lookingAt = bc.getContact(); // now we know we are looking at this contact
-            bc.setStyle(null);
+            bc.setStyle("-fx-background-color: gray");
+            for (Node n : conversationsBox.getChildren()) {
+                ButtonContact c = (ButtonContact) n;
+                if (!c.getContact().equals(bc.getContact()) && !c.getStyle().equals("-fx-background-color: ORANGE")) { // Also need to make sure we are not overwritting the notification
+                    c.setStyle(null);
+                }
+            }
+
+            messageDisplay.setScrollTop(messageDisplay.getHeight());
+
+
         });
+
         bc.getStylesheets().add("button.css");
         bc.setWrapText(true);
+
+        ContextMenu cm = new ContextMenu();
+        MenuItem mi = new MenuItem("Remove conversation");
+        mi.setOnAction(event -> {
+            sendMessage(new RemoveRequest(bc.getContact())); // TODO. Test this.
+            conversations.remove(bc.getContact());
+            fillVbox();
+            messageDisplay.clear();
+            if (lookingAt.equals(bc.getContact())) {
+                lookingAt = null;
+            }
+        });
+        cm.getItems().add(mi);
+        bc.setContextMenu(cm);
     }
 
 
